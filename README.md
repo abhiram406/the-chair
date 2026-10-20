@@ -14,7 +14,8 @@ The Chair is a browser game that puts you in charge of a company. Each turn brin
 - **A live company dashboard.** It tracks revenue, cash, runway, growth, profit margin, morale, customer satisfaction, tech debt, reputation and board confidence. Tap any number for a plain-language explanation.
 - **Ways to lose.** Run out of cash, or lose the board's confidence, and your tenure ends early.
 - **Learning built in.** Every briefing explains its jargon and includes an everyday analogy. After each decision you see the lesson, a real company case study, and how the other paths would have played out.
-- **Two scenario sources.** AI-written scenarios are tailored to your industry and react to your numbers. In AI mode you can also write your own decision for the AI to judge, and ask a mentor questions. A built-in library of 12 classic dilemmas works without any AI at all.
+- **Two scenario sources.** AI-written scenarios are tailored to your industry and react to your numbers. In AI mode you can also write your own decision for the AI to judge, and ask a mentor questions. A built-in library of 37 dilemmas works without any AI at all.
+- **Multi-lever decisions.** In 25 of the built-in scenarios, you don’t pick one answer: you set several levers at once, such as price, staffing and communication. Some combinations reinforce each other and some backfire, and the outcome shows how your choices interacted.
 - **A final review.** It covers company value at the start, when you left, and after your long-term bets landed, along with a breakdown of your leadership style.
 
 Progress is saved in your browser automatically.
@@ -37,7 +38,7 @@ Browser ──POST /api/llm──▶ server.js ──(adds secret key)──▶ 
 
 The game asks for **JSON** (JavaScript Object Notation), a structured text format that code can read reliably. That way each scenario arrives with labeled fields: title, options, effects and so on.
 
-The server has no dependencies, so there's nothing to install beyond Node.js. If no API key is configured, AI features switch off and the built-in library is used.
+The server has no dependencies, so there's nothing to install beyond Node.js. If no API key is configured, AI features switch off and the built-in library of 37 scenarios is used.
 
 ## Run it locally
 
@@ -90,6 +91,7 @@ Every setting is an environment variable. See `.env.example` for a ready-to-copy
 | `LLM_REASONING_EFFORT` | `low` | How long reasoning models think. Lower is faster and uses fewer tokens. Leave empty to never send it. |
 | `LLM_JSON_MODE` | `true` | Ask the provider for strict JSON. Set to `false` if a provider rejects it. |
 | `LLM_MAX_TOKENS` | `4096` | Maximum length of each AI response. |
+| `LLM_TEMPERATURE` | `0.8` | How varied the writing is, from 0 (predictable) to 1 (creative). Leave empty to use the provider's default. |
 | `ACCESS_CODE` | (empty) | Optional shared password visitors must enter to use AI features. |
 | `RATE_LIMIT_PER_MINUTE` | `6` | AI requests allowed per visitor per minute. |
 | `RATE_LIMIT_PER_DAY` | `150` | AI requests allowed per visitor per day. |
@@ -104,11 +106,12 @@ The server works with any provider offering an OpenAI-compatible `/chat/completi
 | Groq (default) | `https://api.groq.com/openai/v1` | `openai/gpt-oss-120b` | Very fast; free plan with rate limits |
 | OpenRouter | `https://openrouter.ai/api/v1` | a model ID ending in `:free` | Many free models, tight daily limits |
 | Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | a current Gemini model name | Key from Google AI Studio |
+| Claude (Anthropic API) | `https://api.anthropic.com/v1` | e.g. `claude-haiku-5-5` | Paid per use; key from the Claude Console |
 | Ollama (local) | `http://localhost:11434/v1` | e.g. `llama3.1` | Free and offline; any text works as the key |
 
 Model catalogs change often, so check each provider's model list for current names.
 
-If a provider rejects JSON mode or the reasoning setting, the server automatically retries without them. Smaller models sometimes write weaker scenarios or broken JSON; if that happens often, use a larger model.
+If a provider rejects JSON mode, the reasoning setting or the temperature, the server automatically retries without them. Smaller models sometimes write weaker scenarios or broken JSON; if that happens often, use a larger model.
 
 ## Protecting your quota
 
@@ -138,7 +141,7 @@ Provider errors are printed in the server logs. On Render, open the service's **
 ## Project structure
 
 ```
-public/index.html   The game: interface, simulation, built-in scenarios
+public/index.html   The game: interface, simulation, 37 built-in scenarios
 server.js           Serves the game and forwards AI requests
 .env.example        Configuration template
 package.json        Start script and Node version

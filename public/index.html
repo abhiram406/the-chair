@@ -47,7 +47,8 @@ button{font:inherit;color:inherit}
 .serif{font-family:"Source Serif 4",Georgia,"Times New Roman",serif}
 
 .top{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.55rem clamp(1rem,4vw,2rem)}
-.brand{font-stretch:125%;font-weight:850;font-size:1.05rem;letter-spacing:-.01em;margin:0}
+.brand{font-stretch:125%;font-weight:850;font-size:1.05rem;letter-spacing:-.01em;margin:0;white-space:nowrap}
+@media (max-width:480px){.top .link{padding:.35rem .4rem;font-size:.84rem}.top .topnav{gap:.1rem;flex-wrap:nowrap}}
 .topnav{display:flex;gap:.35rem;flex-wrap:wrap;justify-content:flex-end}
 .link{background:none;border:0;padding:.4rem .6rem;border-radius:8px;cursor:pointer;font-weight:600;font-size:.9rem;color:var(--muted)}
 .link:hover{color:var(--ink);background:var(--soft)}
@@ -207,7 +208,7 @@ table{border-collapse:collapse;width:100%;font-size:.93rem;font-variant-numeric:
 th,td{text-align:left;padding:.45rem .6rem;border-bottom:1px solid var(--line);white-space:nowrap}
 th{font-weight:700;color:var(--muted);font-size:.84rem}
 .styles{display:grid;gap:.45rem;margin:.6rem 0}
-.styles .s{display:grid;grid-template-columns:9.5rem minmax(0,1fr) 2rem;gap:.6rem;align-items:center;font-size:.9rem}
+.styles .s{display:grid;grid-template-columns:9.5rem minmax(0,1fr) 2.8rem;gap:.6rem;align-items:center;font-size:.9rem}
 .styles .track2{height:10px;background:var(--soft);border-radius:5px;overflow:hidden}
 .styles .track2 i{display:block;height:100%;background:var(--accent)}
 .review{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:1.1rem 1.2rem;margin:1rem 0}
@@ -217,6 +218,25 @@ th{font-weight:700;color:var(--muted);font-size:.84rem}
 .loglist li{padding:.55rem 0;border-bottom:1px solid var(--line);font-size:.93rem}
 .loglist .w{color:var(--muted);font-size:.82rem}
 h2.sec{font-stretch:110%;font-weight:800;font-size:1.25rem;margin:2rem 0 .3rem}
+
+
+/* Levers */
+.lever-intro{color:var(--muted);font-size:.93rem;margin:.2rem 0 .4rem}
+.lever{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:.8rem 1rem .9rem;margin:.6rem 0}
+.lever legend{float:left;width:100%;font-stretch:108%;font-weight:760;font-size:1rem;margin:0 0 .5rem;padding:0}
+.seg{clear:both;display:flex;flex-wrap:wrap;gap:.4rem}
+.segbtn{background:var(--soft);border:1.5px solid transparent;border-radius:9px;padding:.5rem .75rem;cursor:pointer;font-size:.93rem;text-align:left;line-height:1.35}
+.segbtn:hover{border-color:var(--muted)}
+.segbtn[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);font-weight:650}
+.commitrow{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;margin-top:1rem}
+.plan{list-style:none;padding:0;margin:0 0 1rem;display:grid;gap:.35rem}
+.plan li{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:.5rem .75rem;display:flex;flex-wrap:wrap;gap:.2rem .7rem;align-items:baseline}
+.plan li span{color:var(--muted);font-size:.86rem;min-width:9.5rem}
+.wave .notes p{margin:.2rem 0}
+.combo{border:1.5px dashed var(--accent);border-radius:12px;padding:.9rem 1.1rem;margin:1rem 0;background:var(--surface)}
+.combo h4{margin:0 0 .3rem;font-size:.95rem}
+.combo p{margin:.4rem 0}
+.combo .when{display:inline-block;font-weight:700;font-size:.8rem;color:var(--accent);margin-right:.35rem}
 
 /* Drawer */
 .drawer{position:fixed;inset:0;z-index:30;display:flex;justify-content:flex-end;background:var(--scrim)}
@@ -577,6 +597,574 @@ const BANK = [
    ]}
 ];
 
+/* ---------- Multi-lever scenarios: set several levers at once; some combinations interact ---------- */
+const ch = (label, style, s, se, m, me, l, le) => ({ label, style, short:{note:s||'', e:se||{}}, medium:{note:m||'', e:me||{}}, long:{note:l||'', e:le||{}} });
+const lv = (name, choices) => ({ name, choices });
+const cb = (when, h, note, e) => ({ when, h, note, e });
+const LEVER_BANK = [
+ { id:'late-launch', type:'Product', title:'The big launch is slipping',
+   situation:['{co}’s most important release of the year is due in eight weeks, and the team now estimates twelve. Sales has already promised the date to several large customers.','Engineers are tired, and the list of known bugs keeps growing.'],
+   stakeholders:['Head of sales: “We promised the date. Keep it.”','Engineering lead: “Shipping now means shipping bugs.”'],
+   glossary:[['Backlog','A list of work waiting to be done.'],['Scope','The set of features in a release. To “cut scope” is to remove some so the rest can ship on time.'],['Beta','An early version given to a small group of users to test before a full launch.']],
+   analogy:'It’s like a dinner party where the roast isn’t ready. You can serve it undercooked, make guests wait, or bring out the sides first. Squeezing more cooks into a small kitchen rarely speeds things up.',
+   caseStudy:{company:'IBM OS/360',year:'1960s',summary:'Fred Brooks managed IBM’s huge OS/360 software project, which ran late despite added staff. In The Mythical Man-Month (1975) he set out what became known as Brooks’s law: adding people to a late software project makes it later, because newcomers need training and communication overhead grows.'},
+   levers:[
+    lv('Launch date',[
+     ch('Ship on the original date','bold','Customers get it on time, bugs included.',{rev:3,sat:-4,debt:6},'Bug reports flood support.',{sat:-3,morale:-3}),
+     ch('Delay by a month','cautious','Sales has awkward calls to make.',{rev:-2,board:-2},'A solid release earns praise.',{sat:4},'Your dates become believable.',{rep:2}),
+     ch('Ship a smaller version on time','customer','Core features land on schedule.',{rev:1,sat:1},'The rest follows steadily.',{sat:2,debt:-1},'The team learns to ship in slices.',{growth:1})]),
+    lv('Staffing',[
+     ch('Move in more engineers','bold','Newcomers need onboarding.',{cash:-3,growth:-1},'Coordination overhead slows everyone.',{debt:3}),
+     ch('Keep the team, require overtime','finance','Progress speeds up for now.',{morale:-6},'Burnout sets in and two people resign.',{staff:-2,morale:-3}),
+     ch('Keep the team at normal hours','people','A steady pace, no heroics.',{morale:2},'','','Sustainable habits keep good people.',{morale:2})]),
+    lv('Customer communication',[
+     ch('Share the real timeline now','customer','Some disappointment, but no surprises.',{sat:-1,rep:1},'Trust holds.',{sat:2}),
+     ch('Say nothing until you’re sure','cautious','No awkward conversations yet.',{},'Late news feels like a broken promise.',{sat:-4,rep:-2}),
+     ch('Offer early access as a beta','tech','Eager customers start testing.',{sat:2,debt:1},'Their feedback catches bugs early.',{debt:-3,sat:1})])],
+   combos:[
+    cb({0:0,1:0},'short','Shipping on the date while adding people is Brooks’s law in action: newcomers trip over unfinished code.',{debt:5,morale:-3}),
+    cb({0:1,2:1},'medium','You delayed and stayed silent, so customers hear about the delay from rumors.',{rep:-3}),
+    cb({0:2,2:2},'medium','Beta feedback shaped the follow-up features, which land exactly as customers wanted.',{growth:2})],
+   lesson:'When time runs short, cut scope before you cut quality or add people, and tell customers early.' },
+
+ { id:'incentives', type:'Customers', title:'Sales targets keep being missed',
+   situation:['{co}’s sales team has missed its target two quarters running. The board wants a fix, and your head of sales has proposals on the table.','Meanwhile, customer success reports that some recent deals were oversold: customers were promised features that don’t exist.'],
+   stakeholders:['Head of sales: “Pay for performance and they’ll sell.”','Head of customer success: “We’re already cleaning up promises sales shouldn’t have made.”'],
+   glossary:[['Quota','The amount of sales a salesperson is expected to close in a period.'],['Commission','Pay tied to each sale, on top of salary.'],['Upmarket','Selling to larger customers with bigger budgets. “Downmarket” is the reverse.'],['Sales operations','The team that runs sales tools, data and processes.']],
+   analogy:'Incentives are like the rules of a game. Players will find the fastest way to score, so make sure scoring is the same as winning.',
+   caseStudy:{company:'Wells Fargo',year:'2016',summary:'Under intense sales targets, Wells Fargo employees opened millions of accounts customers never asked for. The scandal broke in 2016, leading to fines, the CEO’s resignation, and years of regulatory limits on the bank’s growth.'},
+   levers:[
+    lv('Commission plan',[
+     ch('Raise commission on new deals','bold','Reps are fired up and deals close fast.',{rev:4,margin:-2},'Some deals went to poor-fit customers.',{sat:-4},'Those customers cancel.',{rev:-3,rep:-2}),
+     ch('Pay part only if the customer stays a year','customer','Reps grumble about delayed pay.',{morale:-3},'Deals are better qualified.',{sat:3},'Retention climbs.',{growth:2,rev:2}),
+     ch('Keep the current plan','cautious','No disruption.',{},'Targets keep slipping.',{board:-3})]),
+    lv('Target market',[
+     ch('Go upmarket to large companies','bold','Long sales cycles begin.',{cash:-4},'A few large contracts land.',{rev:5,debt:3},'Big customers demand custom work.',{debt:3,margin:2}),
+     ch('Stay with current customers','cautious','Familiar ground.',{}),
+     ch('Go downmarket to small businesses','customer','Lots of small, fast sales.',{rev:2,growth:2},'Small customers churn more.',{sat:-2},'Volume builds a broad base.',{growth:2,margin:-1})]),
+    lv('Sales leadership',[
+     ch('Replace the head of sales','bold','The team is unsettled.',{morale:-4,cash:-2},'A new leader resets the process.',{growth:2}),
+     ch('Coach them and set clearer targets','people','The head of sales appreciates the support.',{morale:2},'Modest improvement.',{growth:1}),
+     ch('Hire a sales operations lead','tech','Investment in tools and data.',{cash:-2},'Forecasts become reliable.',{board:4},'Better data sharpens every decision.',{growth:1})])],
+   combos:[
+    cb({0:0,1:2},'medium','High commissions plus small, fast deals: reps chase volume, and cancellations spike.',{sat:-4,rev:-2}),
+    cb({0:1,2:2},'long','Retention-based pay and good data reinforce each other: you know which customers stay and why.',{growth:2})],
+   lesson:'People do what they are paid to do. Make sure what you reward is what you actually want.' },
+
+ { id:'pricing', type:'Finance', title:'Time to rethink pricing',
+   situation:['{co}’s prices haven’t changed in three years while costs have risen. Some customers use far more of the product than others but pay the same.','Finance proposes a pricing overhaul. How you roll it out matters as much as the numbers.'],
+   stakeholders:['Finance lead: “We’re undercharging our heaviest users.”','Customer success: “Our loyal customers will feel punished.”'],
+   glossary:[['Per-seat pricing','Charging for each user of the product.'],['Usage-based pricing','Charging by how much customers use, for example per transaction.'],['Grandfathering','Letting existing customers keep their old price, sometimes for a set period.']],
+   analogy:'Changing prices is like raising the rent on long-time tenants. The new number matters, but so does how much notice you give and whether they feel respected.',
+   caseStudy:{company:'Netflix',year:'2011',summary:'Netflix split its DVD and streaming plans, a price increase of up to 60% for customers who wanted both, and announced a separate DVD brand called Qwikster. About 800,000 subscribers left in one quarter, the stock fell sharply, and Qwikster was dropped within weeks.'},
+   levers:[
+    lv('Price level',[
+     ch('Raise prices 20%','finance','Revenue per customer jumps.',{rev:6,margin:4,sat:-4},'Some customers leave.',{rev:-3}),
+     ch('Raise prices 8%','cautious','A modest lift with little noise.',{rev:2,margin:2,sat:-1}),
+     ch('Hold prices','customer','Customers are content.',{sat:1},'Rising costs squeeze margins.',{margin:-2})]),
+    lv('Pricing model',[
+     ch('Switch to usage-based pricing','bold','Billing systems need rebuilding.',{debt:4,cash:-2},'Heavy users pay more; light users stay.',{rev:3,sat:1},'Revenue grows as customers grow.',{growth:3}),
+     ch('Keep per-seat pricing','cautious','No changes to billing.',{}),
+     ch('Introduce good, better and best tiers','customer','Customers can choose what fits.',{debt:2},'Many upgrade to the middle tier.',{rev:3})]),
+    lv('Existing customers',[
+     ch('Grandfather them for a year','customer','Loyal customers feel respected.',{sat:3,rev:-2},'','','Most accept the new price when the year ends.',{rep:2}),
+     ch('Move everyone with 90 days’ notice','finance','Grumbling, but time to plan.',{sat:-1}),
+     ch('Move everyone immediately','bold','Revenue arrives fast, along with angry emails.',{rev:2,sat:-5,rep:-3},'Complaints go public.',{rep:-2})])],
+   combos:[
+    cb({0:0,2:2},'short','A big increase with no notice reads as a cash grab, and social media notices.',{rep:-5,sat:-4}),
+    cb({1:0,2:0},'medium','Giving loyal customers time let them adjust their usage, so the new model feels fair.',{sat:3})],
+   lesson:'Price changes are judged on fairness as much as on cost. Give notice, explain why, and protect your most loyal customers.' },
+
+ { id:'poaching', type:'Talent', title:'A tech giant is poaching your engineers',
+   situation:['A large tech company opened an office nearby and is offering {co}’s engineers 40% raises. Three senior people left last month, including a well-liked team lead.','Recruiters are now messaging the rest of the team directly.'],
+   stakeholders:['Engineering manager: “We can’t match their salaries.”','Head of people: “Money isn’t the real reason people are leaving.”'],
+   glossary:[['Poaching','Hiring away another company’s employees.'],['Equity refresh','A new grant of company shares to existing employees, usually to keep them.'],['Vesting','Earning shares gradually over time. Shares “vest” when they become fully yours.'],['On-call','A rotation where engineers must respond to system problems at any hour.'],['Career ladder','A published set of job levels and what it takes to reach each one.']],
+   analogy:'Retaining people is like keeping a garden. You can build a fence, but it works better to make the soil so good nobody wants to leave.',
+   caseStudy:{company:'Apple, Google, Intel and others',year:'2000s',summary:'Several Silicon Valley companies secretly agreed not to recruit each other’s engineers. A class-action lawsuit followed, and the companies paid about $415 million in a 2015 settlement. Walls against poaching don’t work; being a better place to work does.'},
+   levers:[
+    lv('Retention pay',[
+     ch('Equity refresh for top performers','finance','Your best people get shares that vest over four years.',{cash:-2,morale:2},'Key people stay.',{growth:1}),
+     ch('Raise everyone’s salary 15%','people','Morale jumps and costs rise.',{margin:-4,morale:5},'Some still leave for more.',{staff:-1}),
+     ch('No change in pay','cautious','Costs stay flat.',{},'More people leave.',{staff:-4,morale:-4,growth:-2})]),
+    lv('The empty lead role',[
+     ch('Promote from within','people','The team cheers the promotion.',{morale:3},'Some growing pains.',{growth:-1},'A clear path up keeps ambitious people.',{morale:2}),
+     ch('Hire an experienced outsider','bold','Recruiting fees and a long search.',{cash:-2},'Fresh practices arrive.',{debt:-2}),
+     ch('Split the role across the team','finance','Saves money.',{margin:1},'Everyone is stretched.',{morale:-3})]),
+    lv('The work itself',[
+     ch('Fix on-call burnout','tech','Fewer middle-of-the-night alerts.',{growth:-1,debt:-2,morale:3},'People feel rested.',{morale:2}),
+     ch('Publish a clear career ladder','people','People see a future here.',{morale:2},'','','Promotions feel fair.',{morale:3,rep:2}),
+     ch('Nothing new for now','cautious','',{})])],
+   combos:[
+    cb({0:2,2:2},'medium','No raises and no changes to the work: departures accelerate, and the remaining team is overloaded.',{staff:-4,morale:-5,debt:4}),
+    cb({0:0,2:1},'long','Equity plus a visible path up turns your best people into long-term builders.',{growth:2,rep:2})],
+   lesson:'People rarely leave for money alone. Pay fairly, then compete on growth, meaning and how the work feels.' },
+
+ { id:'platform', type:'Strategy', title:'A platform you depend on raises its fees',
+   situation:['About 40% of {co}’s customers come through a large platform, such as an app store or marketplace. It just doubled its cut from 15% to 30% and banned telling customers they can pay elsewhere.','Your profit on those sales will roughly halve.'],
+   stakeholders:['Head of growth: “That’s where our customers are. We can’t leave.”','Finance lead: “We’ve built our house on rented land.”'],
+   glossary:[['Platform','A company others build on or sell through, like an app store or marketplace.'],['Platform risk','The danger of depending on a company that can change its prices or rules.'],['Channel','A route through which you reach and sell to customers.']],
+   analogy:'Depending on one platform is like opening a shop inside someone else’s mall. The foot traffic is great until the landlord raises the rent.',
+   caseStudy:{company:'Epic Games',year:'2020',summary:'Epic Games added a direct-payment option to Fortnite to avoid Apple’s 30% App Store fee. Apple removed Fortnite from the App Store, and Epic sued. In 2021 a court sided mostly with Apple but ordered it to let developers point users to other ways to pay.'},
+   levers:[
+    lv('Sales channel',[
+     ch('Accept the new fee','cautious','Margins drop on platform sales.',{margin:-4},'','','You’re still exposed to the next change.',{margin:-1}),
+     ch('Push customers to your own website','bold','The platform buries your listing.',{rev:-4,cash:-2},'Direct customers are more profitable.',{margin:3},'You own the customer relationship.',{growth:2,margin:2}),
+     ch('Spread across several channels','finance','Spending on new channels.',{cash:-4},'New channels ramp up.',{rev:2},'No single landlord can squeeze you.',{growth:1,margin:1})]),
+    lv('Pricing',[
+     ch('Pass the fee on to customers','finance','Prices rise on that platform.',{margin:2,sat:-3}),
+     ch('Absorb it','customer','Customers notice nothing.',{margin:-2})]),
+    lv('Public stance',[
+     ch('Campaign publicly against the fees','bold','Press coverage and new allies.',{rep:3,board:-2},'The platform grows hostile.',{rev:-2},'Regulators take notice.',{margin:2}),
+     ch('Negotiate privately','cautious','Quiet talks begin.',{},'A small concession.',{margin:1})])],
+   combos:[
+    cb({0:1,2:0},'medium','Leaving and campaigning at once makes you the face of the fight, and direct sign-ups surge from the publicity.',{rev:3,rep:2}),
+    cb({0:0,1:1},'long','Accepting and absorbing the fee leaves you with thin margins and no leverage.',{margin:-2,board:-2})],
+   lesson:'Never let one partner control access to most of your customers. Build direct relationships while you can.' },
+
+ { id:'supplier', type:'Operations', title:'A critical supplier just went dark',
+   situation:['The supplier that provides a key part of {co}’s product, whether components, data or a hosted service, has suffered a disaster and can’t deliver for at least three months.','You have about four weeks of reserves.'],
+   stakeholders:['Head of operations: “We need a second supplier, whatever it costs.”','Finance lead: “Stockpiling ties up cash we need.”'],
+   glossary:[['Supplier','A company that provides goods or services you need to make your product.'],['Dual-sourcing','Buying the same thing from two suppliers so one failure can’t stop you.'],['Buffer stock','Extra supply kept in reserve for emergencies.']],
+   analogy:'Relying on one supplier is like having one road into town. It’s efficient until a bridge washes out.',
+   caseStudy:{company:'Toyota',year:'2011 and 2021',summary:'After the 2011 earthquake in Japan cut off many of its suppliers, Toyota mapped its supply chain in detail and had suppliers keep reserves of critical chips. When a global chip shortage hit in 2021, Toyota kept producing longer than most rivals.'},
+   levers:[
+    lv('The next three months',[
+     ch('Pay a premium for an emergency supplier','finance','Supply continues at a much higher cost.',{cash:-6,margin:-3}),
+     ch('Ration supply to your best customers','customer','Smaller customers are left waiting.',{rev:-4,sat:-3},'Those customers remember.',{rep:-2}),
+     ch('Pause new sales','cautious','Existing customers are protected, but growth stalls.',{rev:-2,growth:-3})]),
+    lv('Long-term fix',[
+     ch('Add a second supplier permanently','cautious','Setup costs and more complexity.',{cash:-3,margin:-1},'','','The next disruption barely registers.',{rep:2,growth:1}),
+     ch('Bring it in-house','bold','A big investment.',{cash:-10,staff:3},'Teething problems.',{debt:3},'You control your own supply.',{margin:3}),
+     ch('Wait for the current supplier','finance','No extra cost.',{},'','','You’re exposed to the same risk again.',{})]),
+    lv('Customers',[
+     ch('Warn them now and offer credits','customer','Credits cost money, but trust holds.',{cash:-2,sat:2}),
+     ch('Hope to fix it before they notice','cautious','',{},'Delays catch customers by surprise.',{sat:-5,rep:-2})])],
+   combos:[
+    cb({0:1,2:1},'medium','Rationing without warning: smaller customers find out the hard way and leave.',{rev:-3,rep:-3}),
+    cb({1:2},'long','With nothing changed, a second disruption hits the same weak point.',{rev:-4,board:-4})],
+   lesson:'Efficiency and resilience pull against each other. Decide on purpose how much spare capacity your company needs.' },
+
+ { id:'cloud', type:'Technology', title:'Cloud bills are eating the margin',
+   situation:['{co}’s cloud hosting bill has tripled in two years and now consumes a large share of revenue. Nobody owns the problem: every team spins up servers as needed.','The board has asked for a plan.'],
+   stakeholders:['Infrastructure lead: “We could run our own servers for a fraction of this.”','Product lead: “Every hour spent on costs is an hour not spent on features.”'],
+   glossary:[['Cloud','Renting computing power and storage from providers like Amazon Web Services instead of owning servers.'],['Committed-use discount','A lower price in exchange for promising to spend a set amount over a year or more.'],['Gross margin','Revenue minus the direct cost of delivering the product, as a share of revenue.']],
+   analogy:'Cloud spending is like leaving every light on in a big house. Each bulb is cheap, and nobody notices until the bill arrives.',
+   caseStudy:{company:'Dropbox',year:'2015 to 2017',summary:'Dropbox moved most of its file storage off Amazon Web Services onto infrastructure it built itself. In its 2018 filing to go public, it said the move saved nearly $75 million over two years.'},
+   levers:[
+    lv('Infrastructure',[
+     ch('Optimize what you have','cautious','Engineers hunt for waste.',{growth:-1},'Bills fall noticeably.',{margin:3}),
+     ch('Move core workloads to your own servers','bold','A big hardware purchase and migration effort.',{cash:-8,growth:-2,debt:3},'Hosting costs drop sharply.',{margin:5},'But now you run hardware, too.',{debt:2,margin:2}),
+     ch('Sign a three-year committed-use deal','finance','An immediate discount.',{margin:3},'','','You’re locked in if your needs change.',{margin:-1})]),
+    lv('Who owns costs',[
+     ch('Create a dedicated cost team','tech','Two engineers move to cost work.',{growth:-1},'Savings compound.',{margin:2}),
+     ch('Give every team a cost budget','finance','Teams grumble but adapt.',{morale:-2},'Waste shrinks everywhere.',{margin:2,debt:-1},'Cost awareness becomes habit.',{margin:1}),
+     ch('Leave it to engineering leads','cautious','',{},'Costs creep back.',{margin:-1})]),
+    lv('Free plan',[
+     ch('Limit the free plan','finance','Free users complain.',{rep:-2,margin:2},'Fewer new users try the product.',{growth:-2}),
+     ch('Keep the free plan generous','customer','',{},'','','Free users keep feeding growth.',{growth:1})])],
+   combos:[
+    cb({0:1,1:0},'medium','A dedicated team makes the move to your own servers go smoothly.',{debt:-3,margin:2}),
+    cb({0:2,1:2},'long','Locked into a big contract with nobody watching usage, you pay for capacity you don’t use.',{margin:-3})],
+   lesson:'Costs that nobody owns tend to grow. Give spending a clear owner before you reach for big fixes.' },
+
+ { id:'misconduct', type:'Ethics and compliance', title:'Allegations against a senior leader',
+   situation:['Several employees have reported that one of {co}’s top executives bullies staff and makes inappropriate comments. The executive is a star performer who brings in major deals.','A journalist has started asking questions.'],
+   stakeholders:['General counsel: “Say nothing until we know the facts.”','Head of people: “Employees are watching what we do.”'],
+   glossary:[['Independent investigation','An inquiry run by an outside firm with no stake in the outcome.'],['Administrative leave','Temporarily removing someone from their duties, usually with pay, during an investigation.'],['All-hands','A meeting of the whole company.']],
+   analogy:'Culture is like a building’s foundation. Everyone notices which cracks get repaired and which get painted over.',
+   caseStudy:{company:'Uber',year:'2017',summary:'Former engineer Susan Fowler published a blog post describing harassment and HR inaction at Uber. The company hired former US Attorney General Eric Holder to investigate; about 20 people were fired, and CEO Travis Kalanick resigned that June.'},
+   levers:[
+    lv('Investigation',[
+     ch('Hire an independent outside firm','people','Expensive, but credible.',{cash:-2,morale:2},'The findings are trusted.',{rep:3,board:2}),
+     ch('Handle it through internal HR','cautious','Cheaper and quieter.',{},'Employees doubt the result.',{morale:-4}),
+     ch('Talk to the executive privately','finance','Business continues.',{},'Staff see that nothing has changed.',{morale:-6,staff:-2},'The pattern repeats.',{rep:-4})]),
+    lv('The executive',[
+     ch('Place them on leave during the inquiry','people','Some deals stall.',{rev:-2}),
+     ch('Keep them working','bold','Deals keep flowing.',{},'Reporters notice they’re still in charge.',{rep:-3})]),
+    lv('Internal communication',[
+     ch('Address it at an all-hands','customer','A hard conversation, but people feel heard.',{morale:3}),
+     ch('Say nothing internally','cautious','',{},'Rumors fill the gap.',{morale:-3})])],
+   combos:[
+    cb({0:2,1:1},'medium','The story is published. It says leadership knew and protected a star.',{rep:-10,board:-8,morale:-5}),
+    cb({0:0,1:0,2:0},'long','Handled properly, the episode becomes proof that your values are real, and reporting improves across the company.',{rep:3,morale:3})],
+   lesson:'How you handle misconduct by your most valuable people defines your culture more than any values poster.' },
+
+ { id:'privacy', type:'Ethics and compliance', title:'A strict new privacy law',
+   situation:['A major market where {co} operates has passed a strict privacy law. Companies must get clear consent before collecting personal data, and fines can reach a share of global revenue.','It takes effect in six months.'],
+   stakeholders:['Head of marketing: “Our targeting depends on that data.”','General counsel: “The fines could exceed a year of profit.”'],
+   glossary:[['Consent','A person’s clear permission.'],['Data minimization','Collecting only the data you truly need.'],['Compliance','Following the laws and rules that apply to you.'],['Privacy officer','A person responsible for making sure the company handles personal data lawfully.']],
+   analogy:'New privacy rules are like a city requiring seatbelts. You can grudgingly comply, stop driving there, or make safety part of why people buy your car.',
+   caseStudy:{company:'GDPR',year:'2018',summary:'When Europe’s General Data Protection Regulation took effect in May 2018, some US news sites, including the Los Angeles Times and Chicago Tribune, blocked European visitors rather than comply. Others, like Apple, made privacy a centerpiece of their marketing.'},
+   levers:[
+    lv('Approach',[
+     ch('Do the legal minimum','cautious','Compliance work begins.',{cash:-2}),
+     ch('Make privacy a selling point','customer','A bigger investment.',{cash:-5,debt:-2},'Privacy-conscious customers choose you.',{rep:4,sat:2},'Trust becomes an advantage rivals can’t copy quickly.',{growth:2}),
+     ch('Withdraw from that market','bold','Revenue from the region disappears.',{rev:-6},'','','A competitor takes the market.',{growth:-2})]),
+    lv('Data collection',[
+     ch('Collect much less data','customer','Marketing loses some targeting.',{growth:-2},'Less data means less risk.',{rep:2}),
+     ch('Keep collecting, with consent prompts','finance','Fewer people say yes than hoped.',{growth:-1})]),
+    lv('Ownership',[
+     ch('Hire a full-time privacy officer','tech','A new senior hire.',{cash:-1},'Issues are caught early.',{board:2}),
+     ch('Use outside consultants','finance','Cheaper.',{},'Gaps appear between projects.',{debt:2})])],
+   combos:[
+    cb({0:0,2:1},'long','A minimal approach with no owner: an audit finds violations, and a fine follows.',{cash:-8,rep:-5,board:-5}),
+    cb({0:1,1:0},'medium','Collecting less while marketing privacy rings true, and the press holds you up as an example.',{rep:4})],
+   lesson:'Regulation is a cost everyone pays. The question is whether you treat it as a burden or an advantage.' },
+
+ { id:'hiring', type:'Talent', title:'Hiring for hypergrowth',
+   situation:['Demand for {co}’s product has doubled. The plan calls for doubling headcount within a year, and every team says it is understaffed.','Recruiters warn that good candidates are scarce and slow to hire.'],
+   stakeholders:['Team leads: “We need people now.”','Head of people: “Hire too fast and we’ll spend next year undoing it.”'],
+   glossary:[['Hypergrowth','Very fast growth, often doubling or more each year.'],['Hiring bar','The standard a candidate must meet to get an offer.'],['Onboarding','Helping new hires learn the job and become productive.'],['Contractor','Someone hired for a specific project rather than as an employee.']],
+   analogy:'Hiring too fast is like adding water to soup to feed more guests. Do it too quickly and everyone gets a thinner bowl.',
+   caseStudy:{company:'Meta',year:'2022',summary:'Meta, like many tech companies, hired rapidly during the pandemic boom. In November 2022 it laid off about 11,000 employees, and CEO Mark Zuckerberg said he had gotten the growth forecast wrong.'},
+   levers:[
+    lv('Hiring pace',[
+     ch('Double headcount this year','bold','Recruiting costs surge.',{staff:12,cash:-5,margin:-3},'More hands, more coordination.',{growth:3,debt:2}),
+     ch('Grow 30% and prioritize','cautious','Teams must choose what matters.',{staff:5,margin:-1,morale:-1},'','','Steady growth builds lasting teams.',{morale:2}),
+     ch('Use contractors to fill gaps','finance','Fast and flexible.',{cash:-2},'Knowledge walks out when contracts end.',{debt:3})]),
+    lv('Hiring bar',[
+     ch('Keep the bar high','tech','Seats stay empty longer.',{growth:-1},'Strong hires lift everyone.',{morale:2}),
+     ch('Lower it to fill seats','finance','Teams fill up fast.',{growth:2},'Quality varies widely.',{debt:3,sat:-2},'Performance problems pile up.',{morale:-3})]),
+    lv('Onboarding',[
+     ch('Build a proper onboarding program','people','An investment of time.',{cash:-1},'New hires get productive faster.',{growth:2}),
+     ch('Pair each newcomer with a buddy','people','Cheap and personal.',{},'It works, but veterans are stretched.',{growth:1,morale:-1}),
+     ch('Let teams figure it out','cautious','',{},'Newcomers flounder.',{growth:-1,morale:-2})])],
+   combos:[
+    cb({0:0,1:1},'long','Doubling headcount with a lower bar dilutes the culture, and within two years you face painful cuts.',{staff:-8,morale:-6,rep:-3}),
+    cb({0:0,2:2},'medium','Hundreds of new people and no onboarding: veterans spend their days answering questions.',{growth:-3,morale:-3})],
+   lesson:'More people is not the same as more capability. Hire at the speed you can absorb newcomers.' },
+
+ { id:'exclusive', type:'Strategy', title:'A giant wants an exclusive deal',
+   situation:['One of the largest companies in your industry wants to bundle {co}’s product with its own, putting you in front of millions of customers. In return, it wants exclusivity: you couldn’t sell through any of its competitors.','It also wants access to your customer data.'],
+   stakeholders:['Head of partnerships: “This is the deal of the decade.”','Head of strategy: “Exclusivity makes them our only door.”'],
+   glossary:[['Exclusivity','An agreement not to work with anyone else in a category.'],['Distribution','How a product reaches customers.'],['Integration','Connecting two products so they work together.']],
+   analogy:'An exclusive deal is like a record label offering a huge advance. The money is great, but they may end up owning your next album.',
+   caseStudy:{company:'Microsoft and IBM',year:'1980',summary:'When IBM needed an operating system for its first PC, Microsoft licensed MS-DOS to IBM but kept the right to sell it to other manufacturers. As IBM-compatible clones spread, Microsoft sold to all of them and became the industry’s dominant software company.'},
+   levers:[
+    lv('Exclusivity',[
+     ch('Accept full exclusivity','bold','A huge launch through their channel.',{rev:8,growth:3},'You depend on them now.',{board:-2},'They renegotiate from strength.',{margin:-4}),
+     ch('Offer a non-exclusive deal on lower terms','finance','A smaller deal, with freedom kept.',{rev:3,growth:1},'','','You sell through every channel.',{growth:3}),
+     ch('Decline','cautious','',{},'They partner with a competitor.',{growth:-2})]),
+    lv('Integration',[
+     ch('Deep integration','tech','A big engineering effort.',{debt:4,growth:-1},'Customers love the seamless experience.',{sat:3}),
+     ch('Light integration','cautious','',{})]),
+    lv('Customer data',[
+     ch('Share customer data','finance','They pay a premium for it.',{cash:3},'Some customers object.',{rep:-3,sat:-2},'They learn enough to build their own version.',{growth:-3}),
+     ch('Keep data private','customer','A smaller payment.',{},'','','Your customer relationships stay yours.',{rep:2})])],
+   combos:[
+    cb({0:0,2:0},'long','With exclusivity and your data in hand, the giant launches its own competing product.',{rev:-8,growth:-4}),
+    cb({0:1,1:0},'medium','A deep integration without exclusivity becomes a template you reuse with other partners.',{growth:3})],
+   lesson:'In partnerships, protect your options. Revenue now is worth less if it costs you control later.' },
+
+ { id:'pivot', type:'Strategy', title:'Customers are using you for something else',
+   situation:['Usage data shows something unexpected: a fast-growing group of {co}’s customers use one minor feature for a completely different purpose. That group is growing 15% a month, while the core business is flat.','Your original customers still pay most of the bills.'],
+   stakeholders:['Head of product: “This is where the future is.”','Head of sales: “Our existing customers pay the salaries.”'],
+   glossary:[['Pivot','A fundamental change in what a company sells or to whom.'],['Core business','The main product that brings in most of the revenue.'],['Spin-off team','A separate group set up to pursue a new direction.']],
+   analogy:'It’s like a bakery that notices customers keep lining up for its coffee. Do you become a café, or keep baking?',
+   caseStudy:{company:'Slack',year:'2013',summary:'Slack began as an internal chat tool at Tiny Speck, a company making an online game called Glitch. The game failed, and in 2013 the team pivoted to selling the chat tool. Slack became one of the fastest-growing business software products ever.'},
+   levers:[
+    lv('Focus',[
+     ch('Pivot fully to the new use','bold','Original customers feel abandoned.',{rev:-6,sat:-4,morale:-2},'The new market takes off.',{growth:6},'You’ve found a bigger opportunity.',{growth:4,rep:3}),
+     ch('Serve both','cautious','Teams are split.',{growth:1},'Neither gets full attention.',{debt:3}),
+     ch('Stay with the core','finance','Steady revenue continues.',{},'','','A startup builds the thing you spotted first.',{growth:-3})]),
+    lv('Team structure',[
+     ch('Spin up a separate team','tech','A dedicated group with its own goals.',{cash:-3,staff:2},'It moves fast.',{growth:2}),
+     ch('Have existing teams share the work','cautious','',{},'Priorities clash.',{morale:-2})]),
+    lv('Brand',[
+     ch('Launch a new brand for it','bold','Marketing costs.',{cash:-2},'A clear message for the new market.',{growth:2}),
+     ch('Keep one brand','finance','',{},'The message gets muddled.',{rep:-1})])],
+   combos:[
+    cb({0:1,1:1},'medium','Serving both markets with the same teams spreads everyone thin, and both products slip.',{growth:-3,morale:-3}),
+    cb({0:0,1:0},'long','A focused team on the new market compounds its head start.',{growth:3})],
+   lesson:'Customers often find your real product before you do. Watch what they do, not just what they buy.' },
+
+ { id:'ransomware', type:'Crisis', title:'Ransomware has locked your systems',
+   situation:['Attackers have encrypted {co}’s internal systems and demand a ransom in cryptocurrency. Customer-facing services are degraded, and the attackers claim to have copied customer data.','Backups exist, but restoring everything could take two weeks.'],
+   stakeholders:['Head of operations: “Paying gets us back today.”','Security lead: “Paying funds the next attack and guarantees nothing.”'],
+   glossary:[['Ransomware','Malicious software that locks your files until you pay.'],['Encrypted','Scrambled so it can’t be read without a key.'],['Restore from backup','Rebuild systems from saved copies.']],
+   analogy:'Paying a ransom is like paying a burglar to return your keys. You might get them back, but now he knows where you live.',
+   caseStudy:{company:'Colonial Pipeline',year:'2021',summary:'A ransomware attack forced Colonial Pipeline, which carries much of the US East Coast’s fuel, to shut down for several days. It paid about $4.4 million in ransom; the US Justice Department later recovered roughly $2.3 million of it.'},
+   levers:[
+    lv('The ransom',[
+     ch('Pay it','finance','Systems unlock within days.',{cash:-5,sat:-2},'You’re known as a company that pays.',{rep:-3},'Attackers come back.',{cash:-3}),
+     ch('Refuse and restore from backups','bold','Two hard weeks of downtime.',{rev:-4,sat:-5,morale:-3},'Systems come back clean.',{debt:-3})]),
+    lv('Disclosure',[
+     ch('Notify customers immediately','customer','Hard headlines.',{rep:-4,sat:-2},'Credit for honesty.',{rep:3}),
+     ch('Wait until you know what was taken','cautious','',{},'If data leaks first, it looks like a cover-up.',{rep:-6,board:-4})]),
+    lv('Afterward',[
+     ch('Rebuild security from the ground up','tech','Major spending.',{cash:-5,growth:-2},'Far fewer weak points.',{debt:-5},'Security becomes a selling point.',{rep:3}),
+     ch('Patch the hole and move on','finance','Quick and cheap.',{},'','','Other holes remain.',{debt:3})])],
+   combos:[
+    cb({0:0,2:1},'long','You paid and only patched. The same group attacks again a year later.',{cash:-6,rep:-5,board:-6}),
+    cb({0:1,1:0},'medium','Refusing and being open earns rare praise, and the customers who stayed become loyal.',{sat:4})],
+   lesson:'In a crisis, act on principles you can defend later: be honest with customers, and fix causes, not symptoms.' },
+
+ { id:'safety', type:'Ethics and compliance', title:'An engineer says it isn’t safe',
+   situation:['The night before a major launch, a senior engineer at {co} warns that a component could fail under certain conditions and harm users. Others think the risk is tiny.','Delaying would mean missing a big partner commitment and this quarter’s target.'],
+   stakeholders:['Program manager: “The odds are tiny and the deal is huge.”','Senior engineer: “I can’t sign off on this.”'],
+   glossary:[['Risk assessment','Estimating how likely a harm is and how bad it would be.'],['Escalate','To raise an issue to more senior people.'],['Safety review','A formal check before launch, with the power to stop it.']],
+   analogy:'It’s like a pilot hearing an odd engine noise before takeoff with a full plane. Most noises are nothing, which is exactly why checklists exist.',
+   caseStudy:{company:'Space Shuttle Challenger',year:'1986',summary:'Engineers at contractor Morton Thiokol warned that the shuttle’s O-ring seals might fail in the cold forecast for launch day. Managers overruled them, and Challenger broke apart 73 seconds after liftoff, killing all seven crew members.'},
+   levers:[
+    lv('Launch',[
+     ch('Delay until it’s fixed','customer','The partner is unhappy, and the quarter is missed.',{rev:-4,board:-4},'The fix ships.',{sat:2},'Your safety record becomes an asset.',{rep:4}),
+     ch('Launch with limits on the risky conditions','cautious','A partial launch.',{rev:-1,debt:2}),
+     ch('Launch as planned','bold','Targets are hit.',{rev:3,board:2},'A small number of failures occur.',{sat:-6,rep:-6},'Lawsuits follow.',{cash:-8,rep:-4})]),
+    lv('The engineer',[
+     ch('Back them publicly inside the company','people','Engineers see that warnings matter.',{morale:4},'','','People raise problems early.',{debt:-2}),
+     ch('Thank them, then decide without them','cautious','The engineer feels sidelined.',{morale:-3},'','','People stop speaking up.',{debt:2})]),
+    lv('Process',[
+     ch('Create a formal safety review','tech','Adds a step to every launch.',{growth:-1},'','','Fewer surprises.',{rep:2,debt:-2}),
+     ch('Keep the current process','finance','',{})])],
+   combos:[
+    cb({0:2,1:1},'medium','You launched over a documented objection. When failures surface, that objection is the headline.',{rep:-10,board:-10}),
+    cb({0:0,1:0},'long','Teams learn that raising concerns is valued, and problems now surface weeks earlier.',{debt:-3,morale:2})],
+   lesson:'When experts warn of serious harm, the burden should be on proving it’s safe, not on proving it’s dangerous.' },
+
+ { id:'opensource', type:'Technology', title:'Open source or closed?',
+   situation:['{co}’s core technology could be released as open source. Developers would adopt it faster, but a big cloud provider could also sell it as a service without paying you.','Your board is divided.'],
+   stakeholders:['Developer advocate: “Open source is the fastest path to adoption.”','Finance lead: “We’d be giving away the product.”'],
+   glossary:[['Open source','Software whose code anyone can read, use and modify.'],['Source-available','Code that anyone can read, but with limits on commercial use.'],['Fork','A separate copy of an open-source project that goes its own way. To “fork” a project is to make that copy.'],['Hosted service','Running the software for customers so they don’t have to.']],
+   analogy:'Open-sourcing is like publishing your recipes. More people cook your dishes and know your name, but another restaurant can serve them too.',
+   caseStudy:{company:'Elastic',year:'2021',summary:'Elastic changed the license of its popular open-source search engine, Elasticsearch, in 2021, after Amazon had long offered it as a paid cloud service. Amazon responded by creating its own fork, called OpenSearch.'},
+   levers:[
+    lv('License',[
+     ch('Fully open source','bold','Developers flock to it.',{rep:5,growth:2},'Adoption soars, and so do free riders.',{growth:2},'A cloud giant sells it as a service.',{rev:-4}),
+     ch('Source-available with commercial limits','finance','Some developers grumble.',{rep:-1},'Revenue is protected.',{margin:2}),
+     ch('Keep it closed','cautious','',{},'','','Open alternatives emerge.',{growth:-2})]),
+    lv('Community',[
+     ch('Fund a community team','people','A few hires.',{cash:-2,staff:1},'Outside contributors improve the code.',{debt:-3}),
+     ch('Minimal community effort','cautious','',{})]),
+    lv('How you make money',[
+     ch('Sell a hosted cloud version','tech','Building the service.',{cash:-4,debt:3},'Recurring revenue grows.',{rev:4}),
+     ch('Sell enterprise-only features','finance','Sales effort required.',{cash:-1},'Large customers pay for extras.',{rev:3,margin:1})])],
+   combos:[
+    cb({0:0,2:0},'long','Your own hosted service turns open-source fans into paying customers. It’s the version they trust most.',{rev:4,growth:2}),
+    cb({0:0,1:1},'long','Open source with no community investment: contributors drift away, and a fork overtakes you.',{growth:-3,rep:-3})],
+   lesson:'Giving away the code can win the market, but only if you are clear about what you will still charge for.' },
+
+ { id:'aidata', type:'Ethics and compliance', title:'Training AI on customer data',
+   situation:['{co}’s team wants to train a new AI feature on customer data already stored in your systems. It would make the product much smarter, and your terms of service arguably allow it.','A competitor faced a public backlash for something similar last year.'],
+   stakeholders:['Head of AI: “The data is our biggest advantage.”','Head of customer success: “Our customers didn’t sign up for this.”'],
+   glossary:[['Training data','Examples used to teach an AI model.'],['Opt-in','Users are included only if they actively agree.'],['Opt-out','Users are included unless they say no.'],['Terms of service','The legal agreement users accept to use a product.']],
+   analogy:'It’s like a doctor using patient records to write a textbook. Maybe allowed, maybe useful, but patients will want to be asked.',
+   caseStudy:{company:'Zoom',year:'2023',summary:'In 2023, users noticed that Zoom’s updated terms of service appeared to let it train AI on customer content. After a public backlash, Zoom revised the terms and said it would not use audio, video or chat content to train AI models without consent.'},
+   levers:[
+    lv('Consent',[
+     ch('Ask customers to opt in','customer','Only some say yes.',{growth:-1},'Those who do are enthusiastic.',{sat:2,rep:2}),
+     ch('Include everyone unless they opt out','finance','Lots of data, quickly.',{growth:2},'Some customers object loudly.',{rep:-3,sat:-2}),
+     ch('Rely on your existing terms','bold','Maximum data, no friction.',{growth:3},'Journalists notice.',{rep:-6,sat:-4,board:-3})]),
+    lv('Data handling',[
+     ch('Strip out identifying details first','tech','Extra engineering work.',{cash:-2,growth:-1},'','','Lower legal risk.',{rep:2}),
+     ch('Use the data as it is','finance','Faster to build.',{growth:1},'','','Regulators start asking questions.',{board:-3})]),
+    lv('Communication',[
+     ch('Announce it clearly','customer','Some pushback, but no surprises.',{rep:1}),
+     ch('Update the terms quietly','cautious','',{},'Someone finds the change.',{rep:-4})])],
+   combos:[
+    cb({0:2,2:1},'medium','A quiet terms change plus broad data use: the backlash goes viral, and you reverse course under pressure.',{rep:-6,sat:-5,growth:-2}),
+    cb({0:0,2:0},'long','Opt-in plus openness makes customers partners, and the volunteers share even more useful data.',{growth:2,sat:2})],
+   lesson:'With customer data, ask whether customers would be surprised, not only whether it’s legal.' },
+
+ { id:'buyout', type:'Mergers and acquisitions', title:'Someone wants to buy the company',
+   situation:['A larger company has offered to buy {co} for 30% more than its current estimated value. Some investors want to take it; others think the company will be worth far more in a few years.','Rumors are already spreading inside the company.'],
+   stakeholders:['Early investor: “This is a great return. Take it.”','Co-founder: “We’re just getting started.”'],
+   glossary:[['Acquisition offer','A proposal to buy a company.'],['Premium','How much more than the current value a buyer offers.'],['Sale process','Inviting several possible buyers to compete.'],['Shareholders','The company’s owners.']],
+   analogy:'It’s like getting an offer on your house halfway through a renovation. The money is real, but so is what the house could be worth.',
+   caseStudy:{company:'Yahoo',year:'2008',summary:'In 2008 Microsoft offered to buy Yahoo for about $44.6 billion. Yahoo’s board rejected the offer as too low. In 2017 Yahoo’s core business was sold to Verizon for roughly $4.5 billion.'},
+   levers:[
+    lv('Your response',[
+     ch('Accept','finance','Investors cheer; the team is anxious.',{board:6,morale:-5},'Integration plans take over.',{growth:-3}),
+     ch('Negotiate for more','bold','Talks drag on.',{board:2,growth:-1},'A better offer, or the buyer walks.',{board:2}),
+     ch('Reject and stay independent','cautious','Some investors are unhappy.',{board:-5,morale:3},'You have to prove you were right.',{board:-2},'If you grow, it was worth it.',{growth:2})]),
+    lv('Other buyers',[
+     ch('Invite other bidders','finance','Advisers’ fees.',{cash:-2},'Competition raises your value.',{board:4}),
+     ch('Deal only with this buyer','cautious','',{})]),
+    lv('Telling employees',[
+     ch('Tell them now','people','Honest, but distracting.',{morale:-2,growth:-1},'Trust holds.',{morale:3}),
+     ch('Wait until it’s decided','cautious','Work continues.',{},'Leaks feed rumors.',{morale:-4,staff:-2})])],
+   combos:[
+    cb({0:2,1:0},'medium','Running a sale process and then rejecting every bidder burns credibility with your board.',{board:-6}),
+    cb({0:1,1:0},'medium','Competing bidders lift the offer substantially, and the board gives you credit.',{board:5})],
+   lesson:'Selling is a one-way door. Know what the company is worth to you, and why, before anyone makes an offer.' },
+
+ { id:'churn', type:'Customers', title:'Customers are quietly leaving',
+   situation:['{co}’s monthly churn has doubled over six months. Exit surveys say the product is fine, but small frustrations add up, including fees customers find unfair.','Those late and cancellation fees bring in a meaningful slice of revenue.'],
+   stakeholders:['Finance lead: “Those fees pay for a whole team.”','Customer success: “The fees are why people hate us.”'],
+   glossary:[['Churn rate','The percentage of customers who cancel in a period.'],['Customer success','A team that helps customers get value from a product so they renew.'],['Net Promoter Score (NPS)','A measure of how likely customers are to recommend you.']],
+   analogy:'Churn is a leaky bucket. Pouring in more water, meaning new customers, won’t help much until you patch the holes.',
+   caseStudy:{company:'Blockbuster',year:'2000s',summary:'Around 2000, Blockbuster earned roughly $800 million a year from late fees, a large share of its revenue and a top customer complaint. Netflix built its subscription around having none. Blockbuster dropped late fees too late and filed for bankruptcy in 2010.'},
+   levers:[
+    lv('Fees',[
+     ch('Eliminate the unpopular fees','customer','Revenue dips; customers cheer.',{rev:-4,sat:5},'Fewer cancellations.',{growth:2}),
+     ch('Keep the fees','finance','Revenue holds.',{},'Frustration continues.',{sat:-3}),
+     ch('Add a cancellation fee','bold','Fewer cancellations on paper.',{rev:2,sat:-6},'Anger spreads online.',{rep:-5},'Customers leave the moment they can.',{rev:-4})]),
+    lv('Retention',[
+     ch('Build a customer success team','people','New hires.',{cash:-3,staff:2},'At-risk customers are saved.',{sat:3,rev:2}),
+     ch('Offer discounts to people who try to cancel','finance','Saves some accounts.',{margin:-2},'Customers learn to threaten to leave.',{margin:-2})]),
+    lv('Product',[
+     ch('Fix the top ten frustrations','tech','Feature work pauses.',{growth:-1,debt:-3},'Satisfaction rises.',{sat:4}),
+     ch('Ship new features instead','bold','Exciting announcements.',{growth:1,debt:2},'The old annoyances remain.',{sat:-1})])],
+   combos:[
+    cb({0:0,2:0},'medium','Removing fees and fixing frustrations changes how customers talk about you, and referrals rise.',{growth:3,rep:3}),
+    cb({0:2,1:1},'medium','Trapping customers with fees and bribing them with discounts teaches them you can’t be trusted.',{rep:-3,margin:-2})],
+   lesson:'Revenue built on customer frustration is fragile. Remove the pain before a competitor does it for you.' },
+
+ { id:'payequity', type:'Culture', title:'An audit finds unequal pay',
+   situation:['An internal analysis shows that at {co}, women and some minority groups are paid less than peers in the same roles with similar performance, by an average of 7%.','Fixing it would cost real money, and employees have started comparing salaries.'],
+   stakeholders:['Finance lead: “Let’s phase it in over three years.”','Head of people: “People already know. Delay looks worse.”'],
+   glossary:[['Pay equity','Paying people the same for equivalent work.'],['Salary bands','The published minimum and maximum pay for each role and level.'],['Pay audit','An analysis of whether pay differences can be explained by legitimate factors.']],
+   analogy:'Unequal pay is like a crooked picture on the wall. Once someone points it out, everyone sees it every time they walk by.',
+   caseStudy:{company:'Salesforce',year:'2015 onward',summary:'In 2015, two Salesforce executives asked CEO Marc Benioff to check for gender pay gaps. An audit found them, and the company has since spent millions of dollars across repeated annual audits to close gaps, a commitment it continues to publicize.'},
+   levers:[
+    lv('Closing the gaps',[
+     ch('Close all gaps now','people','An immediate cost.',{margin:-2,morale:4},'','','Trust is earned.',{rep:3}),
+     ch('Phase it in over three years','finance','A lower immediate cost.',{margin:-1,morale:-2},'People feel it’s too slow.',{morale:-2}),
+     ch('Don’t act yet','cautious','',{},'Underpaid staff start leaving.',{staff:-2,morale:-4},'A lawsuit becomes likely.',{cash:-5,rep:-4})]),
+    lv('Transparency',[
+     ch('Publish salary bands','bold','Some uncomfortable conversations.',{morale:-1},'Fewer pay disputes.',{morale:2},'Candidates trust your offers.',{rep:2}),
+     ch('Keep pay private','cautious','',{})]),
+    lv('Promotions',[
+     ch('Introduce structured promotion criteria','tech','More process.',{growth:-1},'','','Gaps stop reappearing.',{morale:2}),
+     ch('Keep manager discretion','cautious','',{},'','','Gaps creep back.',{morale:-2})])],
+   combos:[
+    cb({0:2,1:0},'short','Publishing salary bands without fixing the gaps puts the unfairness on display.',{morale:-8,rep:-4}),
+    cb({0:0,2:0},'long','Fixing the gaps and the process that created them makes fairness stick, and recruiting gets easier.',{rep:3,morale:2})],
+   lesson:'Fix the outcome and the process that produced it, or the problem will quietly return.' },
+
+ { id:'secondproduct', type:'Strategy', title:'Building a second product',
+   situation:['{co}’s core product is maturing, growth is slowing, and the board is asking what comes next. A promising neighboring market would use much of your existing technology.','Your best engineers are needed on both.'],
+   stakeholders:['Head of strategy: “Without a second engine, we’ll stall.”','Engineering lead: “The core product still has problems.”'],
+   glossary:[['Adjacent market','A market close to yours that you can reach with skills you already have.'],['Bundle','Selling several products together, usually at a discount.'],['Build, buy or partner','Create something yourself, acquire a company that has it, or team up with one.']],
+   analogy:'A second product is like a restaurant adding catering. Same kitchen, new customers, but the dining room still needs serving.',
+   caseStudy:{company:'Amazon Web Services',year:'2006',summary:'Amazon turned the computing infrastructure it had built for its own store into a product for other companies, launching AWS in 2006. It grew into Amazon’s most profitable business.'},
+   levers:[
+    lv('Approach',[
+     ch('Build it yourselves','tech','A long, expensive build.',{cash:-6,growth:-1},'An early version launches.',{rev:2},'A second growth engine.',{growth:4}),
+     ch('Buy a small company that has it','bold','A big check.',{cash:-12,rev:3,staff:3},'Integration is bumpy.',{debt:4}),
+     ch('Partner with a specialist','finance','Fast and cheap.',{rev:1},'','','You share the profits.',{margin:-1})]),
+    lv('Who works on it',[
+     ch('Move your best engineers over','bold','The core team weakens.',{debt:3},'The new product moves fast.',{growth:2}),
+     ch('Hire a new team','finance','Hiring takes time.',{cash:-3,staff:2},'A slower start.',{growth:-1})]),
+    lv('Pricing',[
+     ch('Bundle it with the core product','customer','Existing customers try it.',{sat:2,margin:-1},'','','Bundles make customers harder to lose.',{growth:1}),
+     ch('Sell it separately','finance','',{},'Clear revenue to track.',{rev:1})])],
+   combos:[
+    cb({0:0,1:0},'medium','With your best engineers gone, the core product’s quality slips.',{sat:-4}),
+    cb({0:0,2:0},'long','Built on shared technology and sold as a bundle, the two products reinforce each other.',{growth:2,sat:2})],
+   lesson:'The best new businesses grow from strengths you already have. Protect the core while you build the next engine.' },
+
+ { id:'viral', type:'Crisis', title:'A customer horror story goes viral',
+   situation:['A video of {co}’s staff mistreating a customer has been viewed ten million times. The details are disputed, but the anger is real.','Your first statement, which defended the staff, made things worse.'],
+   stakeholders:['Head of communications: “Apologize now, and properly.”','Head of operations: “Our staff followed the policy.”'],
+   glossary:[['Going viral','Spreading rapidly online.'],['Front-line staff','Employees who deal directly with customers.'],['Root cause','The underlying reason something happened, rather than its visible symptoms.']],
+   analogy:'A viral failure is like a stain on a white shirt. Scrubbing at it in public spreads it; changing the shirt is what people remember.',
+   caseStudy:{company:'United Airlines',year:'2017',summary:'After a passenger was dragged off an overbooked United flight, the CEO’s first statement backed the staff and talked about “re-accommodating” customers, fueling outrage. United later apologized, settled with the passenger and changed its overbooking policies.'},
+   levers:[
+    lv('Public response',[
+     ch('The CEO apologizes personally','customer','A humbling moment.',{rep:3,board:-1},'The story starts to fade.',{rep:2}),
+     ch('Issue a corporate statement','cautious','It reads as scripted.',{rep:-2}),
+     ch('Stay silent and let it pass','bold','The silence becomes the story.',{rep:-6,sat:-3})]),
+    lv('The policy behind it',[
+     ch('Change the policy that caused it','customer','Some cost to fix.',{margin:-1},'It can’t happen again.',{rep:3,sat:2}),
+     ch('Keep the policy, retrain staff','cautious','',{},'','','A similar incident happens again.',{rep:-4})]),
+    lv('Front-line staff',[
+     ch('Let them make things right on the spot','people','Refunds and perks cost money.',{margin:-1,morale:3},'Customers notice the difference.',{sat:4}),
+     ch('Discipline the staff involved','finance','The public sees action.',{rep:1,morale:-4},'Staff become afraid to make decisions.',{sat:-2})])],
+   combos:[
+    cb({0:2,1:1},'long','Silence and an unchanged policy: the next incident triggers a boycott.',{rev:-6,rep:-6}),
+    cb({0:0,1:0,2:0},'long','Owning the failure and empowering staff turns a scandal into a turnaround story.',{rep:4,sat:2})],
+   lesson:'In a public failure, fix the system and take personal responsibility. Blaming individuals rarely ends the story.' },
+
+ { id:'misuse', type:'Ethics and compliance', title:'Your product is being misused',
+   situation:['Researchers have shown that scammers use {co}’s product to target vulnerable people. It’s a small fraction of usage, but the harm is serious.','Adding safeguards would slow down legitimate users and cost real money.'],
+   stakeholders:['Head of growth: “Every extra step costs sign-ups.”','Policy lead: “If we don’t fix this, regulators will.”'],
+   glossary:[['Trust and safety','The team that prevents abuse of a product.'],['Friction','Extra steps that slow users down.'],['Transparency report','A public report on abuse and what the company did about it.']],
+   analogy:'It’s like running a hardware store and learning that burglars buy your crowbars. You can’t stop selling crowbars, but you can ask questions at the counter.',
+   caseStudy:{company:'Facebook in Myanmar',year:'2018',summary:'United Nations investigators said Facebook had played a role in spreading hate speech during violence against the Rohingya in Myanmar. In 2018, Facebook acknowledged it had been too slow to act and needed many more reviewers who spoke the local language.'},
+   levers:[
+    lv('Safeguards',[
+     ch('Build a trust and safety team','people','A significant new team.',{cash:-5,staff:2},'Abuse drops sharply.',{rep:4},'Safety becomes a strength.',{rep:2,board:2}),
+     ch('Use automated detection only','tech','Cheaper, but imperfect.',{cash:-2},'Some abuse slips through.',{rep:1}),
+     ch('Respond to reports case by case','cautious','',{},'More stories of harm emerge.',{rep:-5})]),
+    lv('Product friction',[
+     ch('Add identity checks for risky actions','customer','Legitimate users grumble.',{growth:-2,sat:-1},'Scammers move elsewhere.',{rep:3}),
+     ch('Keep sign-up frictionless','bold','Growth is unaffected.',{})]),
+    lv('Transparency',[
+     ch('Publish a transparency report','customer','Admitting the problem publicly.',{rep:-1},'Regulators see you acting.',{board:2,rep:2}),
+     ch('Handle it quietly','cautious','',{})])],
+   combos:[
+    cb({0:2,1:1},'long','With no team and no friction, regulators step in with rules written for you.',{cash:-6,growth:-3,board:-5}),
+    cb({0:0,1:0},'medium','People plus targeted friction nearly eliminate the scams, and the researchers publish a follow-up praising you.',{rep:4})],
+   lesson:'If you build something used at scale, you own its misuse. Invest in safety before regulators decide for you.' },
+
+ { id:'cofounder', type:'Talent', title:'A co-founder has outgrown their role',
+   situation:['One of {co}’s co-founders runs a key department that has fallen behind as the company has grown. They are loyal, beloved by early employees and own a large share of the company.','Their department’s results are dragging everyone else down.'],
+   stakeholders:['Board member: “The company has outgrown them.”','Early employee: “They are the culture.”'],
+   glossary:[['Co-founder','One of the people who started the company.'],['Executive coach','An experienced adviser who helps a leader grow.'],['Reorganization','Changing who reports to whom and who owns what. Often shortened to “reorg.”']],
+   analogy:'It’s like a founding band member whose style no longer fits the music. The fans love them, but the album isn’t working.',
+   caseStudy:{company:'Apple',year:'1985',summary:'Steve Jobs co-founded Apple but clashed with CEO John Sculley and the board and was pushed out of his operating role in 1985. He founded NeXT and helped build Pixar, and when Apple bought NeXT in 1997 he returned and led Apple’s turnaround.'},
+   levers:[
+    lv('Their role',[
+     ch('Hire a senior leader above them','bold','A painful conversation.',{morale:-4},'The department improves.',{growth:2}),
+     ch('Reshape the role around their strengths','people','They move to work they love.',{morale:2},'A gap remains to fill.',{cash:-2},'Their strengths shine.',{growth:1,morale:1}),
+     ch('Give them a coach and six months','cautious','Patience costs time.',{cash:-1},'Some improvement.',{growth:-1})]),
+    lv('Timing',[
+     ch('Act now','bold','Short-term disruption.',{growth:-1}),
+     ch('Wait until after next quarter','cautious','',{},'The problems deepen.',{growth:-2})]),
+    lv('How it’s announced',[
+     ch('Announce it together, as their choice','people','Their dignity is preserved.',{morale:2}),
+     ch('Announce it as a board decision','finance','Clear, but cold.',{morale:-3,board:2},'Early employees feel shaken.',{staff:-1})])],
+   combos:[
+    cb({0:0,2:1},'medium','An outsider placed over a co-founder, announced coldly: early employees walk out with them.',{staff:-3,morale:-5}),
+    cb({0:1,2:0},'long','Handled with grace, the change becomes a model for how founders grow with the company.',{morale:3,rep:2})],
+   lesson:'Roles should change as a company grows. Do it early, with respect, and with the person rather than to them.' },
+
+ { id:'copycat', type:'Competition', title:'A giant copied your product',
+   situation:['A huge company with a billion users has launched a near-copy of {co}’s signature feature, free and built into its existing product.','Your growth slowed within weeks, and investors are asking whether you can survive.'],
+   stakeholders:['Head of growth: “We have to match everything they do.”','Head of product: “We can’t outspend them. We can out-focus them.”'],
+   glossary:[['Feature parity','Having the same features as a competitor.'],['Niche','A narrow, specialized part of a market.'],['Differentiation','What makes you different and better for a specific customer.']],
+   analogy:'A giant copying you is like a supermarket opening next to your bakery and selling bread. You’ll never beat their prices, but they’ll never bake like you.',
+   caseStudy:{company:'Snapchat and Instagram',year:'2016',summary:'Instagram launched Stories in 2016, a near-copy of Snapchat’s signature feature. Within a year, Instagram Stories had more daily users than all of Snapchat, and Snapchat’s growth slowed sharply.'},
+   levers:[
+    lv('Positioning',[
+     ch('Go head-to-head on features','bold','An expensive race begins.',{cash:-6,debt:4},'You’re always one step behind.',{growth:-2}),
+     ch('Focus on a niche that loves you','customer','Some casual users drift away.',{rev:-2},'Core users grow more loyal.',{sat:4},'A position the giant can’t easily attack.',{margin:2,rep:2}),
+     ch('Explore selling the company','finance','A distraction.',{growth:-1,morale:-3},'Offers come in below hopes.',{board:-2})]),
+    lv('Speed',[
+     ch('Accelerate the roadmap','tech','The team pushes hard.',{morale:-3,growth:2},'New features land first.',{sat:2,debt:2}),
+     ch('Keep a steady pace','cautious','',{})]),
+    lv('Where you invest',[
+     ch('Your most passionate users','customer','Events and creator programs.',{cash:-2},'They become advocates.',{growth:2,rep:2}),
+     ch('Broad advertising','finance','A big campaign.',{cash:-5,growth:2},'Growth fades when spending stops.',{growth:-2})])],
+   combos:[
+    cb({0:0,2:1},'medium','A feature race plus an ad war against a giant drains your cash fast.',{cash:-8,board:-5}),
+    cb({0:1,2:0},'long','Focused on a community that loves you, you become the product people choose on purpose.',{growth:3,rep:2})],
+   lesson:'You can’t outspend a giant. Compete where size doesn’t help them: focus, speed and closeness to customers.' },
+
+ { id:'controversial', type:'Ethics and compliance', title:'A lucrative, controversial customer',
+   situation:['An organization whose work many of {co}’s employees object to wants to sign a large contract, worth about a tenth of revenue. The work is legal and well paid.','A group of employees has already written an open letter asking you to decline.'],
+   stakeholders:['Head of sales: “It’s legal work and good money. Our job is to sell.”','Employee group: “We didn’t join to build this.”'],
+   glossary:[['Acceptable-use policy','Rules about how customers may use your product.'],['Open letter','A public letter, often signed by many people, addressed to leaders.'],['Employee activism','Employees organizing to influence company decisions.']],
+   analogy:'It’s like a family deciding whether to rent the spare room to a tenant half the household objects to. The rent helps, but dinner gets awkward.',
+   caseStudy:{company:'Google and Project Maven',year:'2018',summary:'Thousands of Google employees protested the company’s work on Project Maven, a US military program using AI to analyze drone footage, and some resigned. Google declined to renew the contract and published a set of AI principles.'},
+   levers:[
+    lv('The contract',[
+     ch('Sign it as is','finance','A big revenue boost.',{rev:8,morale:-6},'Some engineers resign.',{staff:-2}),
+     ch('Sign with strict limits on use','cautious','A smaller deal.',{rev:4,morale:-2}),
+     ch('Decline','people','Revenue forgone.',{board:-4,morale:5},'','','People who share your values seek you out.',{rep:3})]),
+    lv('Employee voice',[
+     ch('Hold an open forum before deciding','people','A hard debate, but people feel heard.',{morale:3,growth:-1}),
+     ch('Decide at the top','bold','Fast and clear.',{},'Resentment simmers.',{morale:-3})]),
+    lv('Policy',[
+     ch('Publish principles for future deals','tech','Some deals will be off-limits.',{growth:-1},'Fewer internal fights.',{morale:2},'Customers know where you stand.',{rep:2}),
+     ch('Decide case by case','cautious','',{},'','','Every controversial deal reopens the fight.',{morale:-2})])],
+   combos:[
+    cb({0:0,1:1},'medium','Signing without listening turns the open letter into a press story.',{rep:-4,morale:-4}),
+    cb({0:1,1:0,2:0},'long','Listening, setting limits and publishing principles lets people disagree with the decision but trust the process.',{morale:3})],
+   lesson:'You won’t please everyone on questions of values. Make the process fair, the principles public, and apply them consistently.' }
+];
+BANK.push(...LEVER_BANK);
+
 /* ---------- Helpers ---------- */
 const $ = s => document.querySelector(s);
 const app = $('#app');
@@ -754,7 +1342,8 @@ function pickBank(){
     situation:b.situation.map(fill), stakeholders:b.stakeholders.slice(),
     glossary:b.glossary.map(([term,meaning]) => ({term, meaning})),
     analogy:b.analogy, caseStudy:b.caseStudy,
-    options:b.options.map(x => ({...copy(x), detail:fill(x.detail)})),
+    options:b.levers ? [] : b.options.map(x => ({...copy(x), detail:fill(x.detail)})),
+    levers:b.levers ? copy(b.levers) : null, combos:b.combos ? copy(b.combos) : [], lesson:b.lesson || '',
     mentor:[]
   };
 }
@@ -762,7 +1351,7 @@ function pickBank(){
 function setScenario(sc){
   S.scenario = sc; S.phase = 'scenario'; S.error = null;
   S.markPrev = S.mark; S.mark = copy(S.m);
-  S.customDraft = ''; S.customError = null; S.mentorOpen = false; S.mentorDraft = '';
+  S.customDraft = ''; S.customError = null; S.mentorOpen = false; S.mentorDraft = ''; S.leverPick = {};
   for (const g of sc.glossary) if (g.term && g.meaning) S.terms[g.term] = g.meaning;
   save(); render(); window.scrollTo({top:0});
 }
@@ -889,7 +1478,7 @@ ${brief()}
 
 The current decision: ${sc.title}
 ${sc.situation.join('\n')}
-Options that were offered: ${sc.options.map(x => x.label).join('; ')}
+Options that were offered: ${optionsText(sc)}
 
 Instead of those, the player wrote their own decision:
 """${text.slice(0, 2000)}"""
@@ -912,7 +1501,7 @@ ${brief()}
 
 They face this decision: ${sc.title}
 ${sc.situation.join('\n')}
-Options: ${sc.options.map(x => x.label).join('; ')}
+Options: ${optionsText(sc)}
 
 Their question: "${q.slice(0, 800)}"
 
@@ -935,6 +1524,72 @@ Write a candid, warm review in plain text with no markdown symbols, 220 to 300 w
 }
 
 /* ---------- Decisions ---------- */
+
+function optionsText(sc){
+  if (sc.levers) return sc.levers.map(L => `${L.name} (${L.choices.map(c => c.label).join(' / ')})`).join('; ') + '. The player sets every lever at once.';
+  return sc.options.map(x => x.label).join('; ');
+}
+function addE(t, e){ for (const k in (e || {})) t[k] = (t[k] || 0) + e[k]; return t; }
+
+function resolveLevers(){
+  const sc = S.scenario, tf = TFS[S.tf], t = S.turn, pick = S.leverPick || {};
+  const picks = sc.levers.map((L, i) => ({ name:L.name, i, j:pick[i], c:L.choices[pick[i]] }));
+  if (picks.some(p => !p.c)) return;
+  const matched = (sc.combos || []).filter(c => Object.entries(c.when).every(([li, ci]) => pick[li] === ci));
+  const H = {};
+  for (const h of ['short','medium','long']){
+    const e = {}, notes = [];
+    picks.forEach(p => { addE(e, p.c[h].e); if (p.c[h].note) notes.push(p.c[h].note); });
+    matched.filter(m => m.h === h).forEach(m => addE(e, m.e));
+    for (const k in e){ e[k] = Math.round(e[k]); if (!e[k]) delete e[k]; }
+    H[h] = { notes, e };
+  }
+  applyEffects(H.short.e, S.m);
+  const mk = h => H[h].notes.concat(matched.filter(m => m.h === h).map(m => m.note)).join(' ');
+  S.pending.push({ due:t+tf.med,  h:'medium', e:H.medium.e, note:mk('medium') || 'Your plan settles in.', from:sc.title });
+  S.pending.push({ due:t+tf.long, h:'long',   e:H.long.e,   note:mk('long') || 'The long-term effects of your plan play out.', from:sc.title });
+  const counts = {};
+  picks.forEach(p => { S.styles[p.c.style] = (S.styles[p.c.style] || 0) + 1; counts[p.c.style] = (counts[p.c.style] || 0) + 1; });
+  const top = Object.entries(counts).sort((a,b) => b[1]-a[1])[0][0];
+  S.log.push({ when:periodLabel(t), type:sc.type, title:sc.title, choice:picks.map(p => `${p.name}: ${p.c.label}`).join('; '), style:top, custom:false });
+  S.outcome = { levers:true, picks:picks.map(p => ({ name:p.name, label:p.c.label, i:p.i, j:p.j })), H, matched };
+  S.phase = 'outcome';
+  save(); render();
+  const st = $('.stage'); if (st) st.scrollIntoView({block:'start'});
+}
+
+function leversHTML(sc){
+  const pick = S.leverPick || {}, set = sc.levers.filter((_, i) => pick[i] !== undefined).length;
+  return `<p class="lever-intro">Set every lever, then commit your plan. The levers act together, and some combinations help or hurt each other.</p>
+    ${sc.levers.map((L, i) => `<fieldset class="lever"><legend>${esc(L.name)}</legend><div class="seg">${L.choices.map((c, j) => `<button class="segbtn" data-act="lever" data-l="${i}" data-c="${j}" aria-pressed="${pick[i] === j}">${esc(c.label)}</button>`).join('')}</div></fieldset>`).join('')}
+    <div class="commitrow"><button class="btn" data-act="commitlevers" ${set === sc.levers.length ? '' : 'disabled'}>Commit this plan</button><span class="muted small">${set} of ${sc.levers.length} levers set</span></div>`;
+}
+
+function leverOutcomeHTML(){
+  const sc = S.scenario, O = S.outcome, tf = TFS[S.tf];
+  const lastTurn = S.turn + 1 >= S.total;
+  const when = n => S.turn + n >= S.total ? `After you’ve left (about ${dur(n)} from now)` : `In ${dur(n)}`;
+  const notes = arr => arr.length ? `<div class="notes">${arr.map(n => `<p>${esc(n)}</p>`).join('')}</div>` : '<p class="sealed">Nothing noticeable yet.</p>';
+  const hl = { short:'Right away', medium:'Medium term', long:'Long term' };
+  return `
+  <article>
+    <p class="kind">Your plan</p>
+    <h2 class="title">${esc(sc.title)}</h2>
+    <ul class="plan">${O.picks.map(p => `<li><span>${esc(p.name)}</span><b>${esc(p.label)}</b></li>`).join('')}</ul>
+    <div class="wave now"><h4>Right away</h4>${notes(O.H.short.notes)}${chips(O.H.short.e)}</div>
+    <div class="wave med"><h4>${when(tf.med)}</h4>${notes(O.H.medium.notes)}<p class="sealed">The combined effects are revealed when this lands.</p></div>
+    <div class="wave long"><h4>${when(tf.long)}</h4>${notes(O.H.long.notes)}<p class="sealed">${S.turn + tf.long >= S.total ? 'This lands after your tenure. It still counts toward your legacy score.' : 'The combined effects are revealed when this lands.'}</p></div>
+    ${O.matched.length ? `<div class="combo"><h4>How your choices interacted</h4>${O.matched.map(m => `<p><span class="when">${hl[m.h]}</span>${esc(m.note)}</p>`).join('')}</div>` : `<div class="combo"><h4>How your choices interacted</h4><p>No strong interactions this time. Each lever worked on its own.</p></div>`}
+    ${sc.lesson ? `<div class="lesson"><h4>The lesson</h4><p>${esc(sc.lesson)}</p></div>` : ''}
+    ${sc.caseStudy ? `<div class="case"><h4>Case study: ${esc(sc.caseStudy.company)}${sc.caseStudy.year ? ` (${esc(sc.caseStudy.year)})` : ''}</h4><p>${esc(sc.caseStudy.summary)}</p></div>` : ''}
+    <details class="paths"><summary>The other settings you could have chosen</summary>
+      ${sc.levers.map((L, i) => L.choices.filter((_, j) => j !== O.picks[i].j).map(c => `<div class="path"><p><span class="muted">${esc(L.name)}:</span> <b>${esc(c.label)}</b></p>${['short','medium','long'].filter(h => c[h].note).map(h => `<p><span class="muted">${hl[h]}:</span> ${esc(c[h].note)}</p>`).join('')}</div>`).join('')).join('')}
+      ${(sc.combos || []).filter(c => !O.matched.includes(c) && !O.matched.some(m => m.note === c.note)).length ? `<div class="path"><p><b>Combinations you didn’t trigger</b></p>${sc.combos.filter(c => !O.matched.some(m => m.note === c.note)).map(c => `<p>${esc(Object.entries(c.when).map(([li, ci]) => sc.levers[li].choices[ci].label).join(' + '))}: ${esc(c.note)}</p>`).join('')}</div>` : ''}
+    </details>
+    <div class="next"><button class="btn" data-act="advance">${lastTurn ? 'Finish and see your review' : 'Move on to ' + esc(periodLabel(S.turn + 1).toLowerCase())}</button></div>
+  </article>`;
+}
+
 function resolveDecision(opt, custom){
   const tf = TFS[S.tf], t = S.turn;
   applyEffects(opt.short.e, S.m);
@@ -1135,7 +1790,7 @@ function renderSetup(){
       <p class="hint" id="ai-status">${aiStatus === 'checking' ? 'Checking whether the AI server is available…' : aiOn ? `Scenarios will be written by ${esc(AI.model || 'your AI model')} through your server.` : 'The AI server isn’t reachable or has no API key set, so the built-in library will be used.'}</p>
       <div class="choices">
         <button class="choice" data-act="set" data-k="source" data-v="ai" aria-pressed="${sel('source','ai')}" ${aiOn ? '' : 'disabled'}><b>Written by AI</b><span>Fresh, industry-specific dilemmas that react to your numbers. You can also write your own decisions and ask a mentor.</span></button>
-        <button class="choice" data-act="set" data-k="source" data-v="bank" aria-pressed="${sel('source','bank')}"><b>Built-in library</b><span>12 classic leadership dilemmas with real case studies. Works instantly, no usage needed.</span></button>
+        <button class="choice" data-act="set" data-k="source" data-v="bank" aria-pressed="${sel('source','bank')}"><b>Built-in library</b><span>37 leadership dilemmas with real case studies, 25 of them with several levers to pull at once. Works instantly, no usage needed.</span></button>
       </div>
       ${aiOn && AI.needsCode && draft.source === 'ai' ? `<label class="field"><span>Access code</span><input class="codein" type="password" autocomplete="off" placeholder="Ask whoever runs this game" value="${esc(getCode())}"></label>` : ''}
     </fieldset>
@@ -1231,9 +1886,10 @@ function stageHTML(){
     ${sc.analogy ? `<div class="analogy"><h4>Think of it like this</h4><p>${esc(sc.analogy)}</p></div>` : ''}
     <h3 class="dh">Your decision</h3>
     ${evaluating ? `<div class="loading" style="padding:1rem 0" aria-live="polite"><div class="pulse"><i></i><i></i><i></i></div><p style="margin:0;font-weight:700">The board is weighing your plan</p><p class="muted small" id="busy-line" style="margin:.2rem 0 0">Working out what happens next.</p></div>` : `
+    ${sc.levers ? leversHTML(sc) : ''}
     <div>${sc.options.map((x,i) => `<button class="opt" data-act="choose" data-i="${i}"><span class="olabel">${esc(x.label)}</span>${x.detail ? `<span class="odetail">${esc(x.detail)}</span>` : ''}</button>`).join('')}</div>
     ${ai ? `<div class="custom">
-      <label for="cd">Or write your own decision</label>
+      <label for="cd">${sc.levers ? 'Or ignore the levers and write your own plan' : 'Or write your own decision'}</label>
       <p class="muted small" style="margin:0">Real executives rarely get a neat menu. Describe what you’d do, who does it, by when, and with what money.</p>
       <textarea id="cd" maxlength="2000" placeholder="For example: Offer the customer a paid pilot of a general version, staffed by two engineers for six weeks, and…"></textarea>
       ${S.customError ? `<p class="small" style="color:var(--bad);margin:0 0 .5rem">${esc(S.customError)}</p>` : ''}
@@ -1249,6 +1905,7 @@ function stageHTML(){
 }
 
 function outcomeHTML(){
+  if (S.outcome && S.outcome.levers) return leverOutcomeHTML();
   const { opt, custom } = S.outcome, tf = TFS[S.tf], sc = S.scenario;
   const lastTurn = S.turn + 1 >= S.total;
   const when = n => S.turn + n >= S.total ? `After you’ve left (about ${dur(n)} from now)` : `In ${dur(n)}`;
@@ -1288,7 +1945,7 @@ function renderEnd(){
     ['Profit margin', x => x.margin.toFixed(0) + '%'], ['Headcount', x => num(x.staff)], ['Team morale', x => Math.round(x.morale)],
     ['Customer satisfaction', x => Math.round(x.sat)], ['Tech debt', x => Math.round(x.debt)], ['Reputation', x => Math.round(x.rep)], ['Board confidence', x => Math.round(x.board)]
   ];
-  const totalDec = S.log.length || 1;
+  const totalDec = Object.values(S.styles).reduce((a, b) => a + b, 0) || 1;
   const styleRows = Object.keys(STYLES).map(k => [k, S.styles[k] || 0]).filter(r => r[1] > 0).sort((a,b) => b[1]-a[1]);
   app.innerHTML = `
   <section style="max-width:56rem">
@@ -1306,8 +1963,8 @@ function renderEnd(){
     <div class="review" id="review" aria-live="polite">${S.review ? reviewHTML(S.review) : '<p class="muted">Your coach is reading through your decisions…</p>'}</div>
 
     <h2 class="sec">Your leadership instincts</h2>
-    <p class="muted small" style="margin:0">How often each kind of choice showed up across ${S.log.length} decision${S.log.length === 1 ? '' : 's'}.</p>
-    <div class="styles">${styleRows.map(([k,c]) => `<div class="s"><span>${STYLES[k]}</span><span class="track2"><i style="width:${c/totalDec*100}%"></i></span><span>${c}</span></div>`).join('')}</div>
+    <p class="muted small" style="margin:0">Share of your choices, including each lever you set, that leaned each way.</p>
+    <div class="styles">${styleRows.map(([k,c]) => `<div class="s"><span>${STYLES[k]}</span><span class="track2"><i style="width:${c/totalDec*100}%"></i></span><span>${Math.round(c/totalDec*100)}%</span></div>`).join('')}</div>
 
     <h2 class="sec">The numbers</h2>
     <div class="tablewrap"><table>
@@ -1369,6 +2026,8 @@ document.addEventListener('click', e => {
   }
   if (a === 'discard'){ clearSave(); return renderSetup(); }
   if (!S) return;
+  if (a === 'lever'){ S.leverPick = S.leverPick || {}; S.leverPick[Number(el.dataset.l)] = Number(el.dataset.c); save(); render(); return; }
+  if (a === 'commitlevers') return resolveLevers();
   if (a === 'choose'){ const opt = S.scenario.options[Number(el.dataset.i)]; if (opt) resolveDecision(opt, false); return; }
   if (a === 'custom') return commitCustom();
   if (a === 'ask') return askMentor();

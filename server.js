@@ -23,7 +23,7 @@ const QUICK_MODEL = process.env.LLM_QUICK_MODEL || MODEL;
 const REASONING_EFFORT = process.env.LLM_REASONING_EFFORT ?? 'low';   // set to empty to never send it
 const JSON_MODE = process.env.LLM_JSON_MODE !== 'false';
 const MAX_TOKENS = Number(process.env.LLM_MAX_TOKENS) || 4096;
-const TEMPERATURE = process.env.LLM_TEMPERATURE === undefined ? 0.8 : Number(process.env.LLM_TEMPERATURE);
+const TEMPERATURE = (process.env.LLM_TEMPERATURE ?? '0.8') === '' ? NaN : Number(process.env.LLM_TEMPERATURE ?? '0.8');   // empty = don't send
 const PER_MINUTE = Number(process.env.RATE_LIMIT_PER_MINUTE) || 6;
 const PER_DAY = Number(process.env.RATE_LIMIT_PER_DAY) || 150;
 const ACCESS_CODE = process.env.ACCESS_CODE || '';
@@ -72,8 +72,8 @@ function readBody(req){
 async function callProvider(messages, wantJson, tier){
   const model = tier === 'quick' ? QUICK_MODEL : MODEL;
   const base = { model, messages, max_tokens: MAX_TOKENS };
-  if (Number.isFinite(TEMPERATURE)) base.temperature = TEMPERATURE;
   const extras = {};
+  if (Number.isFinite(TEMPERATURE)) extras.temperature = TEMPERATURE;
   if (wantJson && JSON_MODE) extras.response_format = { type: 'json_object' };
   if (REASONING_EFFORT) extras.reasoning_effort = REASONING_EFFORT;
 
@@ -85,7 +85,7 @@ async function callProvider(messages, wantJson, tier){
   });
 
   let r = await attempt({ ...base, ...extras });
-  // Some providers or models reject optional settings like JSON mode or reasoning_effort.
+  // Some providers or models reject optional settings like temperature, JSON mode or reasoning_effort.
   // If so, retry once without them.
   if (r.status === 400 && Object.keys(extras).length){
     const detail = await r.text().catch(() => '');
