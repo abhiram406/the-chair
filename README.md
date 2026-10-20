@@ -1,110 +1,145 @@
-# The Chair: self-hosted edition
+# The Chair
 
-A CEO/CTO training simulator you can host yourself. Scenarios are written by Groq or any other provider that speaks the "OpenAI-compatible" format. If no AI is configured, the game still works with its built-in library of 12 scenarios.
+**Train to be a CEO or CTO, one decision at a time.**
 
-## How it fits together
+The Chair is a browser game that puts you in charge of a company. Each turn brings a realistic dilemma. Every choice you make ripples outward: some effects land right away, some months later, and some only after your tenure ends.
 
-There are two pieces:
+<!-- Replace with your deployed address, or delete this line -->
+**Play it:** https://your-app-name.onrender.com
 
-- **`public/index.html`** is the game itself. It runs in the player's browser.
-- **`server.js`** is a small backend. A backend is a program running on a computer you control, as opposed to the visitor's browser. It sends the game page to visitors, and it passes the game's AI requests on to Groq.
+## Features
 
-That makes the server a **proxy**: a middleman that forwards requests on someone else's behalf.
+- **Your setup.** Play as CEO (Chief Executive Officer, who runs the whole company and answers to the board) or CTO (Chief Technology Officer, who owns technology and the engineering team). Pick an industry, a company size from 12-person startup to 20,000-person enterprise, and a tenure of 1, 3, 5 or 10 years.
+- **Consequences on three timescales.** A timeline shows medium- and long-term effects heading your way. Some land after you've left, and they still count toward your legacy.
+- **A live company dashboard.** It tracks revenue, cash, runway, growth, profit margin, morale, customer satisfaction, tech debt, reputation and board confidence. Tap any number for a plain-language explanation.
+- **Ways to lose.** Run out of cash, or lose the board's confidence, and your tenure ends early.
+- **Learning built in.** Every briefing explains its jargon and includes an everyday analogy. After each decision you see the lesson, a real company case study, and how the other paths would have played out.
+- **Two scenario sources.** AI-written scenarios are tailored to your industry and react to your numbers. In AI mode you can also write your own decision for the AI to judge, and ask a mentor questions. A built-in library of 12 classic dilemmas works without any AI at all.
+- **A final review.** It covers company value at the start, when you left, and after your long-term bets landed, along with a breakdown of your leadership style.
 
-The reason for the middleman is your **API key**, the secret password that lets your account use Groq. If the key sat inside `index.html`, anyone could open the page source, copy it and spend your quota.
+Progress is saved in your browser automatically.
 
-Think of a restaurant. Diners (browsers) give orders to the waiter (your server). Only the waiter goes into the kitchen (Groq) and carries the house account card (your key).
+## How it works
+
+The project has two parts:
+
+- **`public/index.html`** is the whole game. It runs in the player's browser.
+- **`server.js`** is a small backend: a program running on a server rather than in the browser. It sends the game page to visitors, and it passes the game's AI requests on to a language model provider (Groq by default).
+
+The server acts as a **proxy**, a middleman that forwards requests. That keeps the provider's **API key** (the secret password that lets an account use the AI service) on the server, where visitors can't see or copy it.
+
+Think of a restaurant: diners (browsers) give orders to the waiter (the server). Only the waiter goes into the kitchen (the AI provider) and carries the house account card (the key).
 
 ```
-Browser ──POST /api/llm──▶ server.js ──(adds secret key)──▶ Groq
+Browser ──POST /api/llm──▶ server.js ──(adds secret key)──▶ AI provider
         ◀──scenario JSON──           ◀──────────────────────
 ```
 
-The game asks the AI for **JSON** (JavaScript Object Notation), a structured text format that code can read reliably. That way each scenario comes back with labeled fields: title, options, effects and so on.
+The game asks for **JSON** (JavaScript Object Notation), a structured text format that code can read reliably. That way each scenario arrives with labeled fields: title, options, effects and so on.
 
-## 1. Get a free Groq API key
+The server has no dependencies, so there's nothing to install beyond Node.js. If no API key is configured, AI features switch off and the built-in library is used.
 
-1. Sign up at https://console.groq.com. No credit card is needed for the free plan.
-2. Open **API Keys** and select **Create API Key**.
-3. Copy the key, which starts with `gsk_`. Groq shows it only once.
+## Run it locally
 
-## 2. Run it on your own computer first
+You need **Node.js 18 or newer** (https://nodejs.org). Node is the program that runs JavaScript outside a browser.
 
-You need **Node.js** version 18 or newer. Node is the program that runs JavaScript outside a browser; get it from https://nodejs.org.
-
-1. In this folder, copy `.env.example` to a new file named `.env`.
-2. Paste your key after `LLM_API_KEY=`. A `.env` file holds **environment variables**: settings the server reads when it starts, kept out of the code.
-3. In a terminal, run:
+1. Clone or download this repository.
+2. Get an API key. Groq offers a free plan with no credit card: sign up at https://console.groq.com, open **API Keys**, and create one. It starts with `gsk_` and is shown only once.
+3. Copy `.env.example` to a new file named `.env`, and put the key after `LLM_API_KEY=`.
+   A `.env` file holds **environment variables**: settings the server reads when it starts, kept out of the code. It's listed in `.gitignore`, so it won't be committed.
+4. Start the server:
 
    ```
    npm start
    ```
 
-4. Open http://localhost:3000. "localhost" means "this computer," and 3000 is the door number (port) the server listens on.
+5. Open http://localhost:3000. "localhost" means "this computer," and 3000 is the port, the numbered door the server listens on.
 
-On the setup screen, "Written by AI" should be selectable and show the model name.
+If the setup screen lets you choose **Written by AI** and shows a model name, AI is working.
 
-There are no packages to install, because the server only uses what ships with Node.
+## Deploy your own copy
 
-## 3. Put it online for free (Render)
+To **deploy** is to run the app on a computer on the internet so others can reach it. Any host that runs Node works. These steps use Render, which has a free tier.
 
-To **deploy** is to copy your app onto a computer on the internet so others can reach it. Render has a free tier that suits this.
-
-1. Put this folder in a GitHub repository. `.gitignore` already keeps your `.env` file (and key) out of it.
+1. Fork this repository, or push your own copy to GitHub.
 2. At https://render.com, choose **New**, then **Web Service**, and connect the repository.
 3. Use these settings:
    - **Runtime:** Node
    - **Build command:** `npm install`
    - **Start command:** `npm start`
    - **Instance type:** Free
-4. Under **Environment**, add `LLM_API_KEY` with your Groq key. If you're sharing the link publicly, also add `ACCESS_CODE` (see section 5).
-5. Select **Deploy**. You'll get an address like `https://the-chair-xxxx.onrender.com`.
+4. Under **Environment**, add `LLM_API_KEY`. If the link will be public, also add `ACCESS_CODE` (see "Protecting your quota").
+5. Deploy. Render gives you an address like `https://your-app-name.onrender.com`.
 
-**Cold starts:** free Render services go to sleep after 15 minutes without visitors. The next visit takes up to about a minute while the server wakes up. If the first briefing fails with "Couldn’t reach the AI server," wait a moment and select **Try again**.
+Free Render services go to sleep after about 15 minutes without visitors. The next visit can take up to a minute while the server wakes up. If the first briefing fails, wait a moment and select **Try again**.
 
-The same folder runs anywhere that can run Node, such as Railway, Fly.io, a home server or a cheap VPS (virtual private server, a rented computer in a data center). Set the same environment variables and run `npm start`.
+Railway, Fly.io, a home server or a VPS (virtual private server, a rented computer in a data center) also work. Set the same environment variables and run `npm start`.
 
-## 4. Using a different provider
+Never put an API key in `index.html` or commit it to the repository. Set it as an environment variable on your host.
 
-The server talks to anything with an OpenAI-compatible `/chat/completions` endpoint. An **endpoint** is a specific web address an API answers on.
+## Configuration
 
-To switch, change these three settings:
+Every setting is an environment variable. See `.env.example` for a ready-to-copy template.
+
+| Variable | Default | What it does |
+|---|---|---|
+| `LLM_API_KEY` | (none) | Provider API key. AI features are off without it. |
+| `LLM_BASE_URL` | `https://api.groq.com/openai/v1` | The provider's OpenAI-compatible endpoint (the web address its API answers on). |
+| `LLM_MODEL` | `openai/gpt-oss-120b` | Model for scenarios, custom-decision judging and the final review. |
+| `LLM_QUICK_MODEL` | same as `LLM_MODEL` | Model for quick "Ask a mentor" answers. |
+| `LLM_REASONING_EFFORT` | `low` | How long reasoning models think. Lower is faster and uses fewer tokens. Leave empty to never send it. |
+| `LLM_JSON_MODE` | `true` | Ask the provider for strict JSON. Set to `false` if a provider rejects it. |
+| `LLM_MAX_TOKENS` | `4096` | Maximum length of each AI response. |
+| `ACCESS_CODE` | (empty) | Optional shared password visitors must enter to use AI features. |
+| `RATE_LIMIT_PER_MINUTE` | `6` | AI requests allowed per visitor per minute. |
+| `RATE_LIMIT_PER_DAY` | `150` | AI requests allowed per visitor per day. |
+| `PORT` | `3000` | Port the server listens on. Most hosts set this automatically. |
+
+## Choosing a provider
+
+The server works with any provider offering an OpenAI-compatible `/chat/completions` endpoint. To switch, change three variables:
 
 | Provider | `LLM_BASE_URL` | `LLM_MODEL` | Notes |
 |---|---|---|---|
-| Groq (default) | `https://api.groq.com/openai/v1` | `openai/gpt-oss-120b` | Very fast; free plan has rate limits |
-| OpenRouter | `https://openrouter.ai/api/v1` | a model ID ending in `:free` | Many free models, with tight daily limits |
+| Groq (default) | `https://api.groq.com/openai/v1` | `openai/gpt-oss-120b` | Very fast; free plan with rate limits |
+| OpenRouter | `https://openrouter.ai/api/v1` | a model ID ending in `:free` | Many free models, tight daily limits |
 | Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | a current Gemini model name | Key from Google AI Studio |
-| Ollama (on your own machine) | `http://localhost:11434/v1` | e.g. `llama3.1` | Fully free and offline; set any text as `LLM_API_KEY` |
+| Ollama (local) | `http://localhost:11434/v1` | e.g. `llama3.1` | Free and offline; any text works as the key |
 
 Model catalogs change often, so check each provider's model list for current names.
 
-If a provider rejects JSON mode or the `reasoning_effort` setting, the server automatically retries without them. You can also turn them off with `LLM_JSON_MODE=false` and an empty `LLM_REASONING_EFFORT=`.
+If a provider rejects JSON mode or the reasoning setting, the server automatically retries without them. Smaller models sometimes write weaker scenarios or broken JSON; if that happens often, use a larger model.
 
-Smaller models sometimes write sloppier scenarios or broken JSON. If that happens often, use a larger model.
+## Protecting your quota
 
-## 5. Protecting your free quota
+Free AI plans come with **rate limits**: caps on how many requests and tokens an account can use per minute and per day. A **token** is a chunk of text, roughly three-quarters of a word.
 
-A **rate limit** is a cap on how many requests are allowed in a period of time. Groq's free plan applies one to your whole account. Its sample limits for `openai/gpt-oss-120b` are about:
+One briefing uses roughly 3,000 to 5,000 tokens, so a free plan supports a few dozen AI scenarios a day. Check your provider's console for your actual limits.
 
-- 30 requests and 8,000 tokens per minute
-- 1,000 requests and 200,000 tokens per day
+Because the limits apply to the whole account, one busy visitor can use up the day's quota for everyone. The server has three safeguards:
 
-A **token** is a chunk of text, roughly three-quarters of a word. One briefing uses roughly 3,000 to 5,000 tokens, so expect a few dozen AI scenarios a day. Check your current limits in Groq's console.
+- **`ACCESS_CODE`** turns on a shared password for AI features. The built-in library stays open to everyone.
+- **Per-visitor limits** (`RATE_LIMIT_PER_MINUTE` and `RATE_LIMIT_PER_DAY`) cap how much any one person can request.
+- **A fixed model and token cap** mean visitors can't pick an expensive model or request huge responses.
 
-The server adds three protections of its own:
-
-- **`ACCESS_CODE`:** a shared password. If set, visitors must enter it before AI features work. The built-in library stays open to everyone.
-- **`RATE_LIMIT_PER_MINUTE` and `RATE_LIMIT_PER_DAY`:** limits per visitor. They default to 6 and 150.
-- **Fixed model and token cap:** visitors can't choose the model or ask for huge responses.
-
-If you share the link widely, set an access code. Otherwise one enthusiastic stranger can use up your daily quota.
+If you share your deployment publicly, set an access code.
 
 ## Troubleshooting
 
-- **"Written by AI" is greyed out.** The server has no key. Check `LLM_API_KEY` is set, then restart (on Render, redeploy).
-- **"Switched to the built-in library."** The provider rejected your key. Check for typos or a revoked key.
-- **"You’ve reached a usage limit."** Either the provider's or the server's rate limit was hit. Wait a minute.
-- **Something else fails.** The server prints provider errors in its logs. On Render, open the service's **Logs** tab.
+| Symptom | Likely cause |
+|---|---|
+| "Written by AI" is greyed out | No `LLM_API_KEY` is set. Set it, then restart or redeploy. |
+| "Switched to the built-in library" | The provider rejected the key. Check for typos or a revoked key. |
+| "You’ve reached a usage limit" | The provider's or the server's rate limit was hit. Wait a minute. |
+| "Couldn’t reach the AI server" | The server is waking from sleep or the provider timed out. Try again shortly. |
 
-Saved games live in each visitor's browser (local storage). Clearing browser data, or switching devices, starts fresh.
+Provider errors are printed in the server logs. On Render, open the service's **Logs** tab.
+
+## Project structure
+
+```
+public/index.html   The game: interface, simulation, built-in scenarios
+server.js           Serves the game and forwards AI requests
+.env.example        Configuration template
+package.json        Start script and Node version
+```
