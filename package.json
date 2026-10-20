@@ -1,0 +1,13 @@
+{
+  "name": "the-chair",
+  "version": "1.0.0",
+  "description": "CEO/CTO decision simulator with AI-written scenarios via Groq or any OpenAI-compatible provider",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

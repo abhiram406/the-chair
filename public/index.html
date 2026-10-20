@@ -1,0 +1,1415 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Chair: an executive decision simulator</title>
+<meta name="description" content="Train to be a CEO or CTO by making decisions whose effects ripple over months and years.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#E8ECF0; --surface:#FFFFFF; --soft:#F2F5F8; --ink:#131C25; --muted:#56636F; --line:#CBD3DB;
+  --accent:#2340C4; --accent-ink:#FFFFFF; --accent-soft:#E3E8FB;
+  --good:#0F7356; --bad:#AE3427; --med:#9A600B; --long:#6A3BC2;
+  --good-soft:#E0F2EB; --bad-soft:#F8E4E1; --med-soft:#F6ECDA; --long-soft:#ECE5F9;
+  --scrim:rgba(10,16,22,.45);
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0D1318; --surface:#151E26; --soft:#1B2630; --ink:#E3E9EF; --muted:#93A1AE; --line:#2A3744;
+    --accent:#8FA3FF; --accent-ink:#0D1318; --accent-soft:#1F2950;
+    --good:#4FC79B; --bad:#FF8B7B; --med:#E9AF55; --long:#BBA0FF;
+    --good-soft:#123227; --bad-soft:#3A1C18; --med-soft:#382A12; --long-soft:#2A2042;
+    --scrim:rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0D1318; --surface:#151E26; --soft:#1B2630; --ink:#E3E9EF; --muted:#93A1AE; --line:#2A3744;
+  --accent:#8FA3FF; --accent-ink:#0D1318; --accent-soft:#1F2950;
+  --good:#4FC79B; --bad:#FF8B7B; --med:#E9AF55; --long:#BBA0FF;
+  --good-soft:#123227; --bad-soft:#3A1C18; --med-soft:#382A12; --long-soft:#2A2042;
+  --scrim:rgba(0,0,0,.6);
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 4rem)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Archivo",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.serif{font-family:"Source Serif 4",Georgia,"Times New Roman",serif}
+
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.55rem clamp(1rem,4vw,2rem)}
+.brand{font-stretch:125%;font-weight:850;font-size:1.05rem;letter-spacing:-.01em;margin:0}
+.topnav{display:flex;gap:.35rem;flex-wrap:wrap;justify-content:flex-end}
+.link{background:none;border:0;padding:.4rem .6rem;border-radius:8px;cursor:pointer;font-weight:600;font-size:.9rem;color:var(--muted)}
+.link:hover{color:var(--ink);background:var(--soft)}
+.link.warn{color:var(--bad)}
+
+.wrap{max-width:1180px;margin:0 auto;padding:clamp(1rem,3vw,2rem)}
+.btn{font-weight:700;border-radius:10px;padding:.8rem 1.25rem;border:0;background:var(--accent);color:var(--accent-ink);cursor:pointer;font-size:1rem}
+.btn:hover{filter:brightness(1.08)}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.btn.ghost:hover{border-color:var(--ink)}
+.row{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center}
+.muted{color:var(--muted)}
+.small{font-size:.88rem}
+.notice{background:var(--accent-soft);border-radius:10px;padding:.7rem .9rem;margin:0 0 1rem;font-size:.92rem}
+.errbox{background:var(--bad-soft);color:var(--ink);border-radius:10px;padding:.9rem 1rem;margin:1rem 0}
+
+/* Setup */
+.hero{padding:clamp(1rem,5vw,3rem) 0 clamp(1.5rem,4vw,2.5rem);max-width:52rem}
+.hero h1{font-stretch:125%;font-weight:900;font-size:clamp(2.7rem,10vw,5.6rem);line-height:.9;letter-spacing:-.03em;margin:0 0 1.1rem}
+.lede{font-family:"Source Serif 4",Georgia,serif;font-size:clamp(1.1rem,2.4vw,1.3rem);line-height:1.55;max-width:38rem;margin:0}
+.ripple{display:flex;gap:0;margin-top:1.6rem;max-width:34rem}
+.ripple div{flex:1;border-top:3px solid var(--ink);padding-top:.45rem;font-size:.82rem;font-weight:600}
+.ripple div:nth-child(2){border-color:var(--med);color:var(--med)}
+.ripple div:nth-child(3){border-color:var(--long);color:var(--long);border-top-style:dashed}
+.setup-grid{display:grid;gap:2rem;max-width:62rem}
+fieldset{border:0;margin:0;padding:0;min-width:0}
+legend{font-stretch:112%;font-weight:800;font-size:1.15rem;margin-bottom:.2rem;padding:0}
+.hint{color:var(--muted);font-size:.9rem;margin:0 0 .7rem}
+.choices{display:grid;gap:.6rem;grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+.choice{display:block;text-align:left;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:.85rem 1rem;cursor:pointer}
+.choice:hover{border-color:var(--muted)}
+.choice[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
+.choice[disabled]{opacity:.5;cursor:not-allowed}
+.choice b{display:block;font-size:1.05rem;font-stretch:108%}
+.choice span{display:block;color:var(--muted);font-size:.88rem;margin-top:.15rem}
+.pills{display:flex;flex-wrap:wrap;gap:.45rem}
+.pill{background:var(--surface);border:1.5px solid var(--line);border-radius:999px;padding:.45rem .85rem;cursor:pointer;font-size:.93rem}
+.pill[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);font-weight:650}
+.field{display:block;margin-top:.7rem}
+.field input,textarea,.qrow input{width:100%;font:inherit;color:var(--ink);background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:.65rem .8rem}
+.field input:focus,textarea:focus,.qrow input:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+.field span{display:block;font-weight:650;font-size:.92rem;margin-bottom:.3rem}
+.resume{border:1.5px dashed var(--line);border-radius:12px;padding:1rem;margin-bottom:2rem;max-width:62rem}
+.startbar{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;padding-bottom:2rem}
+
+/* Game */
+.status{margin-bottom:1.25rem}
+.co{font-weight:650;color:var(--muted);font-size:.95rem}
+.period{font-stretch:125%;font-weight:880;font-size:clamp(1.9rem,6vw,3.1rem);line-height:1;letter-spacing:-.025em;margin:.2rem 0 .3rem}
+.sub{color:var(--muted);font-size:.92rem;margin:0 0 1rem}
+.track{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr)) minmax(0,1.6fr);gap:4px}
+.slot{min-height:3.3rem;border-radius:7px;background:var(--surface);border:1px solid var(--line);padding:.35rem .4rem;display:flex;flex-direction:column;justify-content:space-between;gap:.25rem;min-width:0}
+.slot.past{background:var(--soft);color:var(--muted);border-color:transparent}
+.slot.now{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.slot.after{border-style:dashed;background:transparent}
+.tick{font-size:.74rem;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dots{display:flex;flex-wrap:wrap;gap:3px}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.dot.med{background:var(--med)}.dot.long{background:var(--long)}
+.slot.now .dot{box-shadow:0 0 0 1.5px var(--bg)}
+.legend{display:flex;gap:1rem;flex-wrap:wrap;font-size:.8rem;color:var(--muted);margin:.5rem 0 0}
+.legend span{display:inline-flex;align-items:center;gap:.35rem}
+
+.cols{display:grid;gap:1.5rem;grid-template-columns:minmax(0,1fr)}
+@media(min-width:920px){
+  .cols{grid-template-columns:290px minmax(0,1fr)}
+  .metrics{position:sticky;top:calc(env(safe-area-inset-top,0px) + 4.2rem);align-self:start}
+}
+.metrics h2{font-size:.95rem;margin:0 0 .5rem;font-weight:750}
+.mgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.45rem}
+.metric{text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:.55rem .65rem;cursor:pointer;min-width:0}
+.metric:hover{border-color:var(--muted)}
+.mlabel{display:block;font-size:.74rem;color:var(--muted);line-height:1.25}
+.mval{display:block;font-stretch:112%;font-weight:750;font-size:1.12rem;font-variant-numeric:tabular-nums;line-height:1.3}
+.mdelta{font-size:.74rem;font-weight:650;font-variant-numeric:tabular-nums}
+.mdelta.up{color:var(--good)}.mdelta.down{color:var(--bad)}
+.bar{height:4px;background:var(--soft);border-radius:2px;margin-top:.35rem;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--muted)}
+.bar i.ok{background:var(--good)}.bar i.warn{background:var(--med)}.bar i.risk{background:var(--bad)}
+.valuebox{margin-top:.6rem;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:.6rem .7rem;text-align:left;width:100%;cursor:pointer}
+.drift{margin-top:.6rem;font-size:.84rem;color:var(--bad)}
+.drift p{margin:.2rem 0}
+
+.stage{max-width:47rem;min-width:0;scroll-margin-top:calc(env(safe-area-inset-top,0px) + 4.5rem)}
+.kind{color:var(--accent);font-weight:650;font-size:.92rem;margin:0}
+.title{font-stretch:110%;font-weight:800;font-size:clamp(1.45rem,3.6vw,1.95rem);line-height:1.15;letter-spacing:-.015em;margin:.2rem 0 1rem}
+.prose p{font-family:"Source Serif 4",Georgia,serif;font-size:1.1rem;line-height:1.65;margin:0 0 .9rem}
+.stakes{list-style:none;padding:0;margin:1rem 0;display:grid;gap:.4rem}
+.stakes li{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:.5rem .75rem;font-size:.93rem}
+details{margin:.9rem 0}
+summary{cursor:pointer;font-weight:700;padding:.3rem 0}
+dl.terms{margin:.4rem 0 0}
+dl.terms dt{font-weight:700;margin-top:.55rem}
+dl.terms dd{margin:.1rem 0 0;color:var(--muted)}
+.analogy{border-left:3px solid var(--accent);padding:.15rem 0 .15rem 1rem;margin:1.3rem 0}
+.analogy h4,.lesson h4,.case h4{margin:0 0 .25rem;font-size:.92rem}
+.analogy p,.lesson p,.case p{margin:0;font-family:"Source Serif 4",Georgia,serif;font-size:1.03rem;line-height:1.6}
+.dh{font-stretch:110%;font-weight:800;font-size:1.2rem;margin:1.8rem 0 .3rem}
+.opt{display:block;width:100%;text-align:left;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:.9rem 1rem;margin:.55rem 0;cursor:pointer}
+.opt:hover{border-color:var(--accent)}
+.olabel{display:block;font-weight:720;font-size:1.04rem}
+.odetail{display:block;color:var(--muted);font-size:.94rem;margin-top:.2rem}
+.custom{margin-top:1.4rem;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:1rem}
+.custom label{display:block;font-weight:700;margin-bottom:.15rem}
+.custom textarea{min-height:6.5rem;resize:vertical;margin:.5rem 0 .6rem;line-height:1.5}
+.mentor{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:.4rem 1rem}
+.qa{margin:.6rem 0;font-size:.95rem}
+.qa .q{font-weight:700}
+.qa .a{white-space:pre-wrap;margin-top:.2rem;font-family:"Source Serif 4",Georgia,serif;font-size:1.02rem;line-height:1.6}
+.qrow{display:flex;gap:.5rem;margin:.5rem 0 .7rem}
+.qrow .btn{padding:.6rem 1rem;flex:none}
+.landed{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:.9rem 1rem;margin:0 0 1.4rem}
+.landed h3{margin:0 0 .4rem;font-size:1rem}
+.landed .item{border-left:3px solid var(--med);padding:.1rem 0 .1rem .75rem;margin:.6rem 0}
+.landed .item.long{border-color:var(--long)}
+.landed .from{font-size:.82rem;color:var(--muted)}
+.landed p{margin:.1rem 0}
+
+.wave{border-radius:12px;padding:.95rem 1.1rem;margin:.75rem 0;border:1px solid var(--line);background:var(--surface);border-left-width:5px}
+.wave.now{border-left-color:var(--accent)}
+.wave.med{border-left-color:var(--med)}
+.wave.long{border-left-color:var(--long)}
+.wave h4{margin:0 0 .25rem;font-size:.95rem}
+.wave p{margin:0}
+.sealed{font-size:.84rem;color:var(--muted);margin-top:.35rem!important}
+.chips{list-style:none;padding:0;margin:.55rem 0 0;display:flex;flex-wrap:wrap;gap:.35rem}
+.chip{font-size:.82rem;font-weight:650;padding:.2rem .6rem;border-radius:999px}
+.chip.good{background:var(--good-soft);color:var(--good)}
+.chip.bad{background:var(--bad-soft);color:var(--bad)}
+.lesson{background:var(--accent-soft);border-radius:12px;padding:1rem 1.1rem;margin:1.2rem 0}
+.case{border:1px solid var(--line);border-radius:12px;padding:1rem 1.1rem;margin:1rem 0;background:var(--surface)}
+.case .tag{font-size:.8rem;color:var(--muted);margin-top:.5rem!important;font-family:"Archivo",system-ui,sans-serif}
+.feedback{font-family:"Source Serif 4",Georgia,serif;font-size:1.05rem;line-height:1.6;margin:0 0 1rem}
+.paths .path{margin:.8rem 0;padding-bottom:.8rem;border-bottom:1px solid var(--line)}
+.paths .path:last-child{border-bottom:0}
+.paths .path p{margin:.15rem 0;font-size:.93rem}
+.next{margin:1.6rem 0 2rem}
+
+.loading{padding:2.5rem 0}
+.pulse{display:flex;gap:6px;margin-bottom:1rem}
+.pulse i{width:10px;height:10px;border-radius:50%;background:var(--accent);animation:pulse 1.2s infinite ease-in-out}
+.pulse i:nth-child(2){animation-delay:.15s;background:var(--med)}
+.pulse i:nth-child(3){animation-delay:.3s;background:var(--long)}
+@keyframes pulse{0%,100%{opacity:.25;transform:scale(.85)}50%{opacity:1;transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.pulse i{animation:none;opacity:.8}}
+
+/* End */
+.verdict{font-stretch:120%;font-weight:880;font-size:clamp(2rem,6vw,3.4rem);line-height:1;letter-spacing:-.025em;margin:.3rem 0 1rem;max-width:44rem}
+.chain{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.6rem;margin:1.2rem 0 .4rem}
+.chain div{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:.9rem 1rem}
+.chain div:last-child{border-style:dashed;border-color:var(--long)}
+.chain .lab{font-size:.84rem;color:var(--muted)}
+.chain .big{display:block;font-stretch:115%;font-weight:820;font-size:1.6rem;font-variant-numeric:tabular-nums}
+.tablewrap{overflow-x:auto;margin:1rem 0}
+table{border-collapse:collapse;width:100%;font-size:.93rem;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:.45rem .6rem;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-weight:700;color:var(--muted);font-size:.84rem}
+.styles{display:grid;gap:.45rem;margin:.6rem 0}
+.styles .s{display:grid;grid-template-columns:9.5rem minmax(0,1fr) 2rem;gap:.6rem;align-items:center;font-size:.9rem}
+.styles .track2{height:10px;background:var(--soft);border-radius:5px;overflow:hidden}
+.styles .track2 i{display:block;height:100%;background:var(--accent)}
+.review{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:1.1rem 1.2rem;margin:1rem 0}
+.review p{font-family:"Source Serif 4",Georgia,serif;font-size:1.06rem;line-height:1.65;margin:0 0 .8rem}
+.review p:last-child{margin-bottom:0}
+.loglist{list-style:none;padding:0;margin:.5rem 0}
+.loglist li{padding:.55rem 0;border-bottom:1px solid var(--line);font-size:.93rem}
+.loglist .w{color:var(--muted);font-size:.82rem}
+h2.sec{font-stretch:110%;font-weight:800;font-size:1.25rem;margin:2rem 0 .3rem}
+
+/* Drawer */
+.drawer{position:fixed;inset:0;z-index:30;display:flex;justify-content:flex-end;background:var(--scrim)}
+.drawer[hidden]{display:none}
+.panel{width:min(430px,100%);height:100%;background:var(--surface);overflow-y:auto;padding:calc(env(safe-area-inset-top,0px) + 1rem) 1.25rem calc(env(safe-area-inset-bottom,0px) + 1.5rem)}
+.panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem}
+.panel-head h2{margin:0;font-stretch:110%;font-size:1.3rem}
+.panel dl dt{font-weight:750;margin-top:.9rem}
+.panel dl dd{margin:.15rem 0 0;color:var(--muted);line-height:1.55}
+.panel dt.hl{color:var(--accent)}
+</style>
+</head>
+<body>
+<header class="top">
+  <p class="brand">The Chair</p>
+  <nav class="topnav" id="topnav"></nav>
+</header>
+<main class="wrap" id="app"></main>
+<div class="drawer" id="drawer" hidden data-act="close-scrim">
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="panel-title" id="panel"></div>
+</div>
+
+<script>
+'use strict';
+const SAVE_KEY = 'thechair.save.v1';
+
+const ROLES = {
+  CEO: { short:'CEO', full:'CEO (Chief Executive Officer)',
+    blurb:'Run the whole company. You own strategy, money, people and culture, and you answer to the board.',
+    focus:'As CEO they answer to the board of directors and own strategy, capital, people and culture. Keep most scenarios at that level, sometimes crossing into technology.' },
+  CTO: { short:'CTO', full:'CTO (Chief Technology Officer)',
+    blurb:'Own the technology. You decide how systems are built, keep them secure, lead the engineers, and explain technical bets in business terms.',
+    focus:'As CTO they own technology strategy, architecture, security and the engineering organization, and must translate technical choices into business terms for the CEO and board. Keep most scenarios at that level, sometimes crossing into business strategy.' }
+};
+const DOMAINS = ['Subscription software (SaaS)','Fintech (financial technology)','Healthcare technology','Online retail','Manufacturing','Clean energy','Video games','Logistics and delivery','Media and streaming','Biotech'];
+const SIZES = {
+  startup:   { label:'Startup',   desc:'12 people, about $1M yearly revenue',    staff:12,    rev:1,    cash:5,    margin:-120, growth:100, base:70, morale:70, sat:60, debt:35, rep:45, board:65 },
+  scaleup:   { label:'Scale-up',  desc:'150 people, about $25M yearly revenue',    staff:150,   rev:25,   cash:45,   margin:-30,  growth:60,  base:40, morale:62, sat:60, debt:45, rep:55, board:60 },
+  midsize:   { label:'Mid-size',  desc:'1,500 people, about $300M yearly revenue', staff:1500,  rev:300,  cash:120,  margin:8,    growth:15,  base:12, morale:58, sat:62, debt:52, rep:60, board:60 },
+  enterprise:{ label:'Enterprise',desc:'20,000 people, about $5B yearly revenue',   staff:20000, rev:5000, cash:2000, margin:12,   growth:4,   base:4,  morale:55, sat:60, debt:60, rep:68, board:62 }
+};
+const TFS = {
+  '1y': { label:'1 year',   turns:4,  p:.25, unit:'quarter', med:2, long:4, desc:'4 decisions, one per quarter' },
+  '3y': { label:'3 years',  turns:6,  p:.5,  unit:'half',    med:2, long:4, desc:'6 decisions, one every six months' },
+  '5y': { label:'5 years',  turns:10, p:.5,  unit:'half',    med:2, long:5, desc:'10 decisions, one every six months' },
+  '10y':{ label:'10 years', turns:10, p:1,   unit:'year',    med:2, long:4, desc:'10 decisions, one per year' }
+};
+const STYLES = { bold:'Bold bets', cautious:'Caution', people:'People first', customer:'Customer first', tech:'Technology first', finance:'Financial discipline' };
+const TYPES = ['Talent','Product','Technology','Customers','Competition','Finance','Crisis','Culture','Strategy','Ethics and compliance','Operations','Mergers and acquisitions'];
+const EK = { rev:['Revenue','%'], cash:['Cash','%'], growth:['Growth',' pts'], margin:['Margin',' pts'], staff:['Headcount','%'], morale:['Morale',''], sat:['Customer satisfaction',''], debt:['Tech debt',''], rep:['Reputation',''], board:['Board confidence',''] };
+const RANGES = { rev:[-25,25], cash:[-80,80], growth:[-15,15], margin:[-15,15], staff:[-30,30], morale:[-25,25], sat:[-25,25], rep:[-25,25], board:[-25,25], debt:[-30,30] };
+const ALIAS = { revenue:'rev', satisfaction:'sat', customer_satisfaction:'sat', customers:'sat', reputation:'rep', techDebt:'debt', tech_debt:'debt', headcount:'staff', boardConfidence:'board', board_confidence:'board' };
+const NAMES = ['Meridian','Halcyon','Kestrel','Brightline','Ostara','Tessellate','Lumen Works','Corvid','Northfold','Alder & Pike'];
+
+const BASE_TERMS = {
+  'Annual revenue':'All the money customers pay the company in a year, before any costs. Picture water flowing into a tank.',
+  'Cash':'Money in the bank right now: the water already in the tank. A company dies when this hits zero, even if revenue looks healthy.',
+  'Burn rate':'How fast cash drains when the company spends more than it earns. To “burn” cash means to spend it faster than it comes in.',
+  'Runway':'How many months the company can keep going before cash runs out at its current burn rate. Like the fuel gauge on a long drive.',
+  'Growth rate':'How much yearly revenue increases over a year, as a percentage. 50% growth turns $10M into $15M.',
+  'Profit margin':'The share of each revenue dollar the company keeps after paying its costs. A margin of −40% means spending $1.40 for every $1 earned.',
+  'Percentage points (pts)':'The plain difference between two percentages. Going from 10% to 13% margin is +3 points, not +3%.',
+  'Headcount':'The number of people employed.',
+  'Bridge round':'Emergency money from existing investors to keep a company alive until it can raise properly or become profitable. It “bridges” a gap, usually on harsh terms that shrink the founders’ ownership.',
+  'Team morale':'How motivated and committed employees feel. Low morale shows up later as people quitting and work slowing down.',
+  'Customer satisfaction':'How happy customers are with the product and service. Unhappy customers churn.',
+  'Churn':'When customers cancel or stop buying. To “churn” is to leave. Like a leaky bucket: you have to keep pouring in new customers just to stay level.',
+  'Tech debt':'Shortcuts taken in code and systems to move faster now, which make every future change slower and riskier. Like cooking without cleaning up: dinner is quicker tonight, but tomorrow’s kitchen is a mess. Higher is worse.',
+  'Reputation':'How the market, press and potential hires see the company.',
+  'Board confidence':'How much the board of directors trusts you. The board is a small group elected by the company’s owners (shareholders) to oversee leadership, and it can replace the CEO. In this game, if it drops near zero, you’re out.',
+  'Valuation':'An estimate of what the whole company is worth. In this game: yearly revenue times a revenue multiple, plus cash.',
+  'Revenue multiple':'How many dollars investors would pay for each dollar of yearly revenue. Fast growth, healthy margins, happy customers and a good reputation push it up; heavy tech debt pulls it down.',
+  'CEO':'Chief Executive Officer: the person who runs the whole company and answers to the board.',
+  'CTO':'Chief Technology Officer: the executive who owns technology strategy, systems, security and the engineering team.',
+  'SaaS':'Software as a service: software that customers rent by subscription and use over the internet, instead of buying and installing it.',
+  'Fintech':'Financial technology: companies that use software to deliver financial services like payments, lending or investing.',
+  'Scale-up':'A young company that has found customers who want its product and is now growing fast.'
+};
+
+/* ---------- Built-in scenario library (used when AI isn't available) ---------- */
+const o = (label, detail, style, s, m, l, lesson) => ({ label, detail, style, short:{note:s[0],e:s[1]}, medium:{note:m[0],e:m[1]}, long:{note:l[0],e:l[1]}, lesson });
+const BANK = [
+ { id:'custom', type:'Customers', title:'Your biggest customer wants it their way',
+   situation:['Your largest customer, worth roughly 15% of {co}’s revenue, wants a set of features built only for them. Their procurement lead (the person who negotiates what their company buys) hints they’ll move to a competitor at renewal, the point when their contract ends and they decide whether to sign again.','Your product team estimates the work would eat about a third of next period’s engineering time.'],
+   stakeholders:['Head of sales: “We can’t lose this logo. Build it.”','Head of product: “Every custom feature is something we maintain forever.”'],
+   glossary:[['Procurement','The department that negotiates and approves what a company buys.'],['Renewal','When a customer’s contract ends and they decide whether to sign again.'],['Logo','Sales slang for a well-known customer whose name helps win others.']],
+   analogy:'It’s like a restaurant where one regular asks for a dish that isn’t on the menu. Cook it once and they’re thrilled; cook it every night and your kitchen is running two menus.',
+   caseStudy:{company:'37signals (makers of Basecamp)',year:'2000s onward',summary:'37signals has long refused to build one-off features for big clients, arguing that a single product for everyone keeps the software simple and the company small and profitable. They lost some large deals, but kept a focused product and healthy margins for two decades.'},
+   options:[
+    o('Build it for them','Ship the custom features and lock in the renewal.','customer',
+      ['They sign a bigger renewal. Engineers grumble about the detour.',{rev:4,sat:4,debt:8,morale:-3}],
+      ['The custom code has to be maintained alongside everything else, so releases slow down.',{debt:6,growth:-2}],
+      ['You’ve become part consulting shop: other big clients now expect the same treatment.',{growth:-3,margin:-2}],
+      'Saying yes to one customer is often saying no to all the others.'),
+    o('Decline and offer the standard roadmap','Explain what’s coming for everyone and hold firm.','bold',
+      ['They downgrade their contract and start trialing a competitor.',{rev:-6,board:-4}],
+      ['Engineers freed from custom work ship features every customer uses.',{growth:2,debt:-3}],
+      ['One product for everyone keeps costs low and the brand sharp.',{margin:3,rep:3}],
+      'Focus is a decision you pay for up front and collect on later.'),
+    o('Build a general version, more slowly','Turn their request into a feature for all customers on a longer timeline.','tech',
+      ['They’re lukewarm about the wait but stay.',{sat:-2,debt:3}],
+      ['The feature launches for everyone and several other customers upgrade.',{rev:4,sat:4}],
+      ['Customer requests become a reliable source of product ideas.',{growth:2}],
+      'The best answer to a custom request is often “yes, for everyone, later.”')
+   ]},
+ { id:'outage', type:'Crisis', title:'Six hours of downtime on a Monday',
+   situation:['{co}’s main system went down for six hours this morning. Customers couldn’t use the product, and support is flooded. The cause was a configuration change that skipped review.','The team has it running again. Now you have to decide how to handle the aftermath.'],
+   stakeholders:['Head of communications: “Say as little as possible.”','Lead engineer: “We keep patching symptoms. Give us time to fix the root cause.”'],
+   glossary:[['Outage','A period when a service stops working for customers.'],['Post-mortem','A written analysis after an incident of what went wrong and how you’ll prevent it, ideally without blaming individuals.'],['Root cause','The underlying reason a problem happened, as opposed to its visible symptoms.'],['Sprint','A short, fixed block of work time for a team, often two weeks.']],
+   analogy:'An outage is like a restaurant failing a health inspection. Customers forgive a bad day; they don’t forgive finding out you hid it.',
+   caseStudy:{company:'GitLab',year:'2017',summary:'An engineer accidentally deleted a production database, and backups turned out to be broken. GitLab live-streamed its recovery and published a frank post-mortem. They lost about six hours of data, yet many customers said the transparency increased their trust.'},
+   options:[
+    o('Publish a full, honest post-mortem','Explain what broke, why, and what changes now.','customer',
+      ['The admission stings, but your team respects the honesty.',{rep:-3,sat:-3,morale:3}],
+      ['Customers cite the write-up as a reason they trust you.',{rep:6,sat:5}],
+      ['A habit of learning from incidents makes systems sturdier.',{debt:-4,rep:3}],
+      'Trust is built in how you behave on your worst day.'),
+    o('Fix it quietly, keep messaging minimal','Send a short apology and move on.','cautious',
+      ['Most customers move on, but some are irritated by the vague note.',{sat:-6}],
+      ['A customer posts a detailed account online; your silence becomes the story.',{rep:-8,board:-4}],
+      ['The root cause was never addressed, and similar incidents return.',{morale:-4,debt:5}],
+      'Silence doesn’t make a problem smaller; it hands the story to someone else.'),
+    o('Pause new features for a reliability sprint','Point the whole team at stability for one sprint.','tech',
+      ['Feature work stops and sales grumbles, but the system gets sturdier.',{growth:-3,debt:-12,morale:2}],
+      ['Incidents drop sharply and customers notice.',{sat:6,debt:-4}],
+      ['A stable foundation lets the team ship faster than before.',{growth:3,rep:2}],
+      'Slowing down to fix the foundation is often the fastest path.')
+   ]},
+ { id:'price', type:'Competition', title:'A rival slashes prices by 30%',
+   situation:['Your main competitor just cut its prices by 30%. Several of {co}’s customers have forwarded the announcement asking if you’ll match it.','Your sales team says deals are stalling while buyers wait to see what you do.'],
+   stakeholders:['Head of sales: “Match it or we bleed customers.”','Finance lead: “Matching wipes out our margin.”'],
+   glossary:[['Price war','When competitors keep cutting prices to win customers, often hurting everyone’s profits.'],['Tier','A version of a product sold at a specific price, like basic, standard and premium.'],['Cannibalization','When your own new product takes sales from your existing one: your product eating your own lunch.']],
+   analogy:'A price war is like two neighbors competing by lowering their lawn-mowing fee every week. Eventually someone mows for free and nobody can afford new blades.',
+   caseStudy:{company:'Apple',year:'2010s',summary:'As Android phone makers fought hard on price, Apple largely refused to chase the low end and kept premium pricing, investing instead in design, its app ecosystem and services. It sold fewer phones than Android makers combined but captured most of the industry’s profits.'},
+   options:[
+    o('Match their price','Cut prices to stop the bleeding.','customer',
+      ['Deals unstick and customers are relieved, but every sale now earns less.',{rev:-10,margin:-6,sat:2}],
+      ['Margins are thin and the board asks how you’ll fund the roadmap.',{board:-5,margin:-2}],
+      ['You’re now known as the cheap option, and price wars rarely end.',{rep:-2,growth:-2}],
+      'If price is your only difference, you’ve agreed to compete on the one thing anyone can copy.'),
+    o('Hold price and invest in what makes you different','Explain your value and double down on it.','bold',
+      ['You lose a few price-sensitive customers and spend to sharpen your edge.',{rev:-4,cash:-6}],
+      ['Customers who stayed are happier, and new ones choose you for quality.',{sat:5,growth:2}],
+      ['A clear position lets you charge for what you’re worth.',{rep:5,margin:3}],
+      'Pricing is a statement about who you are for.'),
+    o('Launch a cheaper “lite” tier','Offer a stripped-down version at their price.','finance',
+      ['Building the new tier adds work to the engineering queue.',{debt:4,rev:-1}],
+      ['The lite tier pulls in new, smaller customers.',{growth:4,sat:2}],
+      ['Some premium customers trade down to the cheaper tier.',{margin:-2,growth:1}],
+      'A fighting brand can protect your core, but watch what it eats.')
+   ]},
+ { id:'capital', type:'Finance', title:'How will you fund the next stage?',
+   situation:['{co} needs money to pursue its next stage of growth. Three paths are on the table, and each has strings attached.','An investor has offered growth capital, a bank will lend, or you could cut spending and fund growth from your own revenue.'],
+   stakeholders:['Lead investor: “Take the money and go faster.”','Finance lead: “Every dollar has a price. Read the terms.”'],
+   glossary:[['Equity','Ownership in a company. Raising equity means selling a slice of ownership for cash.'],['Dilution','When new shares are issued, each existing share becomes a smaller slice of the company. To be “diluted” is to own a smaller percentage.'],['Debt financing','Borrowing money that must be repaid with interest, without giving up ownership.'],['Covenant','A rule a lender attaches to a loan, such as keeping a minimum amount of cash. Breaking it can trigger penalties.'],['Bootstrapping','Funding growth from your own revenue instead of outside money.']],
+   analogy:'Raising money is like adding rocket fuel to a car. You’ll go much faster, but you can’t take it back out, and everyone now expects you to drive at rocket speed.',
+   caseStudy:{company:'WeWork',year:'2019',summary:'WeWork raised billions of dollars, much of it from SoftBank, and used it to expand at enormous speed. Investors expected growth to continue, but losses mounted; its planned public listing collapsed in 2019, and its valuation fell from about $47 billion to a small fraction of that.'},
+   options:[
+    o('Raise outside money','Sell a slice of ownership for a big cash cushion.','bold',
+      ['Cash lands and the team is energized. Your ownership is diluted.',{cash:60,board:-3,morale:4}],
+      ['New investors expect fast growth, and the pressure rises.',{board:-6,growth:4}],
+      ['Growth accelerates, but spending habits get looser.',{growth:3,margin:-3}],
+      'Outside money buys speed and sells patience.'),
+    o('Borrow from a bank','Take a loan you’ll repay with interest.','finance',
+      ['Cash arrives without giving up ownership. Interest payments begin.',{cash:30,margin:-2}],
+      ['The board likes that ownership stayed intact.',{board:2}],
+      ['Repayments and covenants limit how freely you can maneuver.',{margin:-2,board:-3}],
+      'Debt is cheap when things go well and unforgiving when they don’t.'),
+    o('Cut spending and fund yourself','Trim costs until revenue pays for growth.','cautious',
+      ['Projects are cancelled and a few roles aren’t backfilled. Growth slows.',{margin:10,morale:-6,growth:-5,staff:-5}],
+      ['The board appreciates the discipline, though growth stays modest.',{board:4,growth:-2}],
+      ['You control your own destiny, with no one else’s timeline to meet.',{margin:4,rep:2}],
+      'Profitability is the only investor who never asks for a board seat.')
+   ]},
+ { id:'rewrite', type:'Technology', title:'The engineers want to start over',
+   situation:['{co}’s core system is years old and patched in a hundred places. Senior engineers propose rewriting it from scratch, which they estimate at 12 to 18 months.','Meanwhile customers keep asking for new features, and competitors are shipping quickly.'],
+   stakeholders:['Principal engineer: “Every change takes three times longer than it should.”','Head of product: “Customers won’t wait a year for us to rebuild.”'],
+   glossary:[['Rewrite','Rebuilding a software system from scratch rather than improving the existing one.'],['Refactor','Restructuring existing code to make it cleaner without changing what it does. To “refactor” is to tidy up the inside while the outside stays the same.'],['Legacy system','An older system that still runs the business but is hard to change.']],
+   analogy:'A full rewrite is like tearing down your house and building a new one while still living in it. Refactoring is renovating one room at a time.',
+   caseStudy:{company:'Netscape',year:'late 1990s',summary:'Netscape decided to rewrite its web browser from scratch. The new version took around three years to ship, and in that time Microsoft’s Internet Explorer took much of the market. Software writer Joel Spolsky later called it the single worst strategic mistake a software company can make.'},
+   options:[
+    o('Approve the full rewrite','Commit a large team to rebuilding from scratch.','bold',
+      ['Engineers are thrilled; feature work slows sharply.',{growth:-4,morale:6,cash:-6}],
+      ['Two systems run side by side; customers wait for features.',{growth:-4,sat:-4}],
+      ['If it lands, the new foundation is far easier to build on.',{debt:-30,growth:5}],
+      'Rewrites are rarely as fast as promised. Plan for that.'),
+    o('Refactor piece by piece','Fix the worst parts steadily while still shipping.','cautious',
+      ['A slice of each sprint goes to cleanup.',{debt:-6,growth:-1}],
+      ['The worst problem areas are tamed.',{debt:-8}],
+      ['Steady cleanup compounds into a much healthier system.',{debt:-8,growth:2,morale:3}],
+      'Small, steady repairs beat heroic rescues.'),
+    o('Keep shipping features','Defer the cleanup and chase customer requests.','customer',
+      ['Customers get what they asked for, and quickly.',{growth:3,sat:3,debt:8}],
+      ['Every release gets harder, and engineers get frustrated.',{debt:8,morale:-6}],
+      ['The system becomes so brittle that progress grinds and people leave.',{growth:-5,staff:-3}],
+      'Tech debt is a loan: the interest is paid in speed.')
+   ]},
+ { id:'downturn', type:'Talent', title:'The forecast just got worse',
+   situation:['An economic slowdown has hit {co}’s market. Customers are delaying purchases, and next year’s revenue forecast is down significantly.','Costs were planned for a stronger year. Something has to give.'],
+   stakeholders:['Finance lead: “We need to cut deep, once.”','Head of people: “Layoffs will scar the culture. Look elsewhere first.”'],
+   glossary:[['Layoff','Ending people’s jobs to reduce costs, not because of their performance.'],['Hiring freeze','Pausing all new hiring.'],['Severance','Pay given to employees when their job is eliminated, to support them while they find new work.'],['Forecast','A prediction of future revenue or costs.']],
+   analogy:'Cutting costs in a downturn is like reefing sails in a storm. Too little and you capsize; too much and you can’t steer when the wind returns.',
+   caseStudy:{company:'Airbnb',year:'2020',summary:'When travel collapsed in early 2020, Airbnb laid off about a quarter of its staff, roughly 1,900 people. CEO Brian Chesky’s candid letter, generous severance and help finding new jobs were widely praised. The company refocused, recovered quickly, and went public that December.'},
+   options:[
+    o('Lay off 15% of staff','Make one decisive cut with generous severance.','finance',
+      ['Costs drop fast, but the mood is grim and severance costs cash.',{staff:-15,margin:8,morale:-15,rep:-4,cash:-3}],
+      ['Survivors are anxious and some strong people leave.',{morale:-5,growth:-2}],
+      ['A leaner company emerges, if trust was handled well.',{margin:3}],
+      'If you must cut, cut once, cut deep enough, and treat people with dignity.'),
+    o('Freeze hiring; leaders take pay cuts','Share the pain from the top down.','people',
+      ['Savings are smaller, but people notice leaders going first.',{margin:3,morale:-3,board:2}],
+      ['Loyalty rises; the team pulls together.',{morale:5,rep:2}],
+      ['Your reputation as a fair employer helps hiring later.',{rep:3,margin:1}],
+      'People watch who bears the cost in hard times.'),
+    o('Keep investing through the downturn','Hold the team and keep building.','bold',
+      ['Cash drains faster and the board is nervous.',{cash:-10,board:-8,morale:3}],
+      ['Competitors cut back while you keep shipping.',{growth:2,board:-4}],
+      ['You exit the downturn stronger than rivals.',{growth:3,rep:3}],
+      'Downturns reward those who can afford to be bold. Can you?')
+   ]},
+ { id:'ai', type:'Strategy', title:'AI could make your core product obsolete',
+   situation:['New AI tools can now do much of what {co}’s product does, faster and cheaper. Two startups using them are winning press coverage, and a few customers are asking about your plans.','You need a position before the market decides for you.'],
+   stakeholders:['Head of engineering: “We can build this ourselves.”','Finance lead: “Let someone else burn money proving it works.”'],
+   glossary:[['Disruption','When a new, often cheaper technology upends an established market.'],['Vendor','A company that sells you a product or service.'],['Platform risk','The danger of depending on another company that can change its prices or rules, or compete with you.']],
+   analogy:'It’s like being the best taxi company when ride-hailing apps appear. Your cars are still good, but the way people find a ride has changed.',
+   caseStudy:{company:'Kodak',year:'1975 to 2012',summary:'A Kodak engineer built one of the first digital cameras in 1975, but the company held back, worried about undermining its profitable film business. As digital photography took over, Kodak fell behind and filed for bankruptcy in 2012.'},
+   options:[
+    o('Build AI features now','Put a dedicated team on it immediately.','tech',
+      ['Spending jumps and new code piles on, but you look ahead of the curve.',{cash:-10,debt:6,rep:4}],
+      ['Customers adopt the new features.',{growth:4,sat:3}],
+      ['You own the capability, though it needs constant upkeep.',{growth:3,debt:4}],
+      'Disrupt yourself before someone else does.'),
+    o('Partner with an AI provider','License the technology and integrate it.','finance',
+      ['You ship quickly; the provider takes a cut.',{growth:2,margin:-2}],
+      ['Customers like it, but costs rise with usage.',{sat:3,margin:-2}],
+      ['The provider raises prices and launches a competing feature.',{growth:-1,margin:-2}],
+      'Building on someone else’s platform is fast, and fragile.'),
+    o('Wait and watch','Let the hype settle before investing.','cautious',
+      ['Nothing changes this period, and the board appreciates the restraint.',{board:1}],
+      ['Customers start trialing AI-native competitors.',{growth:-3,rep:-3}],
+      ['You’re seen as a legacy player in a changed market.',{growth:-5,rep:-5}],
+      'Waiting is also a decision, and its costs arrive late.')
+   ]},
+ { id:'breach', type:'Ethics and compliance', title:'Customer data was exposed',
+   situation:['Your security team found that an attacker accessed personal data for a small share of {co}’s customers over the past month. The full scope isn’t clear yet.','Your lawyers say disclosure rules vary by region, and some give you a few weeks.'],
+   stakeholders:['General counsel: “Investigate fully before saying anything.”','Security lead: “Customers should change passwords now.”'],
+   glossary:[['Data breach','When someone gains unauthorized access to private data.'],['Disclosure','Officially telling affected people, and often regulators, about a problem.'],['Regulator','A government body that enforces rules for an industry.'],['CISO','Chief Information Security Officer: the executive responsible for security.'],['General counsel','The company’s top lawyer.']],
+   analogy:'A breach is like discovering a burglar had a copy of your neighbors’ keys. Each day you wait to warn them, the damage and their anger grow.',
+   caseStudy:{company:'Equifax',year:'2017',summary:'Equifax discovered a breach affecting about 147 million people but announced it roughly six weeks later. The delay and clumsy response drew outrage; the CEO resigned, and the company later agreed to a settlement of up to around $700 million.'},
+   options:[
+    o('Disclose within days','Notify customers and regulators as soon as you know the basics.','customer',
+      ['Headlines hurt and some customers are angry, but they can protect themselves.',{rep:-6,sat:-5,cash:-3}],
+      ['Regulators and customers credit the fast response.',{rep:4,board:3}],
+      ['Trust recovers and you’re cited as an example of doing it right.',{sat:4,rep:3}],
+      'In a breach, speed and candor are the damage control.'),
+    o('Investigate fully, then disclose','Wait several weeks for the complete picture.','cautious',
+      ['Things are quiet while the investigation runs.',{}],
+      ['The story leaks before your announcement. Regulators ask why you waited.',{rep:-12,board:-10,sat:-8}],
+      ['Fines and lawsuits follow.',{cash:-8,rep:-4}],
+      'The cover-up, even an unintentional one, is usually worse than the crime.'),
+    o('Disclose and overhaul security','Announce quickly, hire a CISO, and fund a security program.','tech',
+      ['Disclosure hurts and the program costs real money.',{rep:-5,sat:-4,cash:-8}],
+      ['Systems are hardened and customers notice the investment.',{debt:-6,sat:3}],
+      ['Security becomes a selling point.',{rep:6,board:4}],
+      'Turn your worst moment into your strongest commitment.')
+   ]},
+ { id:'rto', type:'Culture', title:'Back to the office?',
+   situation:['Since going largely remote, {co}’s teams report fewer spontaneous conversations, and new hires say they feel disconnected. Many experienced staff, though, love the flexibility.','Leaders are split, and everyone is waiting for your call.'],
+   stakeholders:['Head of operations: “We need people in the room to move fast.”','Engineering managers: “Mandating it will cost us our best people.”'],
+   glossary:[['RTO','Return to office: a policy requiring employees to work on-site.'],['Hybrid','A mix of office and remote work.'],['Offsite','A gathering of a team away from normal work, often for planning and bonding.'],['Attrition','People leaving the company over time.']],
+   analogy:'Office policy is like setting a family’s dinner rules. A strict “everyone at the table at six” builds connection, but only if people don’t start skipping dinner altogether.',
+   caseStudy:{company:'Yahoo',year:'2013',summary:'CEO Marissa Mayer ended work-from-home arrangements at Yahoo, arguing that collaboration needed people together. The move sparked a national debate and some talent loss, and it didn’t reverse Yahoo’s decline.'},
+   options:[
+    o('Mandate four days in the office','Set a clear, company-wide rule.','bold',
+      ['Morale dips and some people resign.',{morale:-12,staff:-4}],
+      ['Teams that stayed collaborate faster.',{morale:-3,growth:1}],
+      ['The culture settles around the new norm.',{growth:1,morale:2}],
+      'Clear rules cost you the people who disagree. Make sure it’s worth it.'),
+    o('Stay remote; fund quarterly offsites','Bring people together on purpose a few times a year.','people',
+      ['People are happy, and travel isn’t cheap.',{morale:5,cash:-3}],
+      ['Offsites build real bonds.',{morale:2}],
+      ['You can hire from anywhere, though some coordination is slower.',{growth:-1,rep:2}],
+      'Connection can be designed, not just located.'),
+    o('Let each team choose','Teams set their own rhythm, with a few shared rules.','people',
+      ['People appreciate the trust.',{morale:3}],
+      ['Some teams thrive; others drift.',{growth:1}],
+      ['Autonomy becomes part of your identity.',{morale:2}],
+      'Push decisions down to the people closest to the work, with clear guardrails.')
+   ]},
+ { id:'acquire', type:'Mergers and acquisitions', title:'A chance to buy a rival',
+   situation:['A smaller competitor is running low on cash and its founders have approached {co} about a sale. They have loyal customers and talented engineers, but their systems are very different from yours.','A larger rival is rumored to be interested too.'],
+   stakeholders:['Head of strategy: “This is a rare chance to grab market share.”','Head of engineering: “Merging their systems with ours would take a year.”'],
+   glossary:[['Acquisition','Buying another company.'],['Acqui-hire','Buying a company mainly to hire its team, often shutting down its product.'],['Integration','Merging two companies’ systems, teams and processes after an acquisition.'],['Due diligence','Investigating a company carefully before buying it.']],
+   analogy:'Buying a company is like two families moving into one house. The bigger home is great, but someone has to decide whose furniture stays.',
+   caseStudy:{company:'HP and Autonomy',year:'2011',summary:'HP bought software company Autonomy for about $11 billion, then a year later wrote down about $8.8 billion of its value, alleging accounting problems. In contrast, Facebook’s $1 billion purchase of the tiny Instagram team in 2012 became one of the best deals in tech. Due diligence and integration made the difference.'},
+   options:[
+    o('Buy the whole company','Acquire them, customers and all.','bold',
+      ['You gain revenue and people, and spend heavily.',{cash:-30,rev:10,staff:8,morale:-3}],
+      ['Integration is messier than planned.',{sat:-4,debt:8,morale:-4}],
+      ['The combined company is a stronger force.',{growth:4,rep:2}],
+      'Most of an acquisition’s value is created or destroyed after the deal closes.'),
+    o('Acqui-hire just the team','Bring the engineers over and retire their product.','tech',
+      ['Talented people join at a modest cost.',{cash:-8,staff:3,morale:2}],
+      ['The new engineers speed up your roadmap.',{growth:2,debt:-3}],
+      ['Some of their old customers come to you.',{growth:1}],
+      'Sometimes the people are the asset.'),
+    o('Pass','Stay focused on your own plan.','cautious',
+      ['Nothing changes for now.',{}],
+      ['A rival buys them instead.',{rep:-2}],
+      ['The bigger rival is harder to compete with.',{growth:-2}],
+      'Not buying something is also a bet on who will.')
+   ]},
+ { id:'intl', type:'Strategy', title:'Should you expand abroad?',
+   situation:['Customers in another region have started finding {co} on their own, and inbound demand from there is growing. Serving them properly would mean new language support, local regulations and a local team.','A regional distributor has also offered to sell for you in exchange for a cut.'],
+   stakeholders:['Head of growth: “The market is ours if we move now.”','Finance lead: “Expansion has sunk companies bigger than us.”'],
+   glossary:[['Reseller','A company that sells your product to its own customers in exchange for a share of the revenue.'],['Localization','Adapting a product for a region: language, currency, laws and culture.'],['Go-to-market','The plan for how you sell and deliver a product to customers.']],
+   analogy:'Opening abroad is like opening a second restaurant in a new city. Same recipes, but different tastes, rules and rent, and you can’t be in both kitchens at once.',
+   caseStudy:{company:'Uber in China',year:'2013 to 2016',summary:'Uber fought an expensive battle for the Chinese market against local rival Didi, reportedly losing around $1 billion a year. In 2016 it sold its China business to Didi in exchange for a stake in the combined company, a sign that local competitors with home advantage are hard to beat.'},
+   options:[
+    o('Launch directly with a local team','Hire people and open properly.','bold',
+      ['Costs climb and margins dip.',{cash:-15,margin:-5,staff:6}],
+      ['Revenue from the region ramps up.',{rev:6,debt:3}],
+      ['You’ve built a second growth engine.',{growth:5,rep:3}],
+      'Expansion multiplies whatever you already are, good or bad.'),
+    o('Go through a reseller','Let the distributor sell for you.','finance',
+      ['Revenue arrives with little effort.',{rev:2,margin:-1}],
+      ['Sales grow steadily.',{rev:3}],
+      ['You never really learn the market, and the reseller keeps a large cut.',{growth:1,margin:-2}],
+      'Partners give you reach, but not understanding.'),
+    o('Stay focused at home','Serve the region only as it comes.','cautious',
+      ['The team appreciates the focus.',{morale:1}],
+      ['The opportunity cools.',{growth:-1}],
+      ['A competitor plants its flag there first.',{growth:-2}],
+      'Focus is a strength until the market moves without you.')
+   ]},
+ { id:'defect', type:'Ethics and compliance', title:'A billing error, days before quarter close',
+   situation:['Three days before the quarter closes, finance discovers {co} has been overcharging about 5% of customers for months due to a billing error. Few customers have noticed.','Refunding everyone now would cause the company to miss the revenue forecast it gave the board.'],
+   stakeholders:['Finance lead: “Fix it next quarter, quietly.”','Head of customer success: “If they find out we knew, we’re done.”'],
+   glossary:[['Quarter close','The end of a three-month financial period, when results are tallied and reported.'],['To miss a forecast','To report results below what you predicted.'],['Recall','Pulling a product back from customers because of a defect.']],
+   analogy:'It’s like a shop that discovers its scale has been adding an ounce to every bag. Nobody has complained, but every customer who finds out will remember.',
+   caseStudy:{company:'Johnson & Johnson',year:'1982',summary:'After someone tampered with Tylenol capsules in the Chicago area, killing seven people, J&J recalled about 31 million bottles nationwide at a cost of around $100 million, though it wasn’t at fault. Tylenol regained its market share within about a year, and the case is still taught as a model of putting customers first.'},
+   options:[
+    o('Refund everyone now and announce it','Take the hit this quarter.','customer',
+      ['You miss the forecast and the board is unhappy.',{rev:-4,cash:-4,board:-5,sat:2}],
+      ['Customers are impressed you came forward.',{sat:5,rep:5}],
+      ['Integrity becomes part of how people describe you.',{rep:5,board:4}],
+      'Your values are what you do when it costs you something.'),
+    o('Fix it, refund only those who complain','Quietly correct the billing going forward.','finance',
+      ['The quarter looks fine.',{board:2}],
+      ['Customers compare notes and the story spreads.',{sat:-6,rep:-6}],
+      ['The lingering distrust shows up in renewals.',{rep:-5,board:-5}],
+      'Half-honesty tends to get discovered, and judged as dishonesty.'),
+    o('Delay the fix until after quarter close','Hit the number, then sort it out.','bold',
+      ['You hit the forecast; finance staff are uneasy.',{board:3,morale:-5}],
+      ['An employee raises it externally. The story is that you knew.',{rep:-12,board:-12,sat:-8}],
+      ['Regulators get involved and penalties follow.',{cash:-10,morale:-5}],
+      'Never trade your credibility for one quarter’s number.')
+   ]}
+];
+
+/* ---------- Helpers ---------- */
+const $ = s => document.querySelector(s);
+const app = $('#app');
+const clamp = (v,a,b) => Math.min(b, Math.max(a, v));
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const str = (v,d) => (typeof v === 'string' && v.trim()) ? v.trim() : d;
+const copy = x => JSON.parse(JSON.stringify(x));
+function money(v){
+  const a = Math.abs(v), s = v < 0 ? '−' : '';
+  if (a >= 1000) return s + '$' + (a/1000).toFixed(a >= 10000 ? 0 : 1) + 'B';
+  if (a >= 1) return s + '$' + (a >= 100 ? a.toFixed(0) : a.toFixed(1)) + 'M';
+  return s + '$' + Math.round(a*1000) + 'K';
+}
+const num = n => Math.round(n).toLocaleString('en-US');
+const sgn = (v, d=0) => (v > 0 ? '+' : v < 0 ? '−' : '±') + Math.abs(v).toFixed(d);
+
+function runway(m){
+  if (m.margin >= 0) return null;
+  const burn = -m.rev * m.margin / 100;
+  if (burn <= 0) return null;
+  return Math.max(0, m.cash / burn * 12);
+}
+function valuation(m){
+  let mult = 1 + Math.max(0, m.growth)/8 + (m.margin >= 0 ? m.margin/10 : Math.max(m.margin/40, -3)) + (m.rep-50)/50 + (m.sat-50)/100 - Math.max(0, m.debt-50)/50;
+  mult = clamp(mult, .4, 25);
+  return m.rev * mult + Math.max(0, m.cash);
+}
+
+let S = null;                 // game state
+let sample = null;            // AI sampling function (talks to /api/llm on your server)
+let aiStatus = 'checking';    // checking | on | off
+let busy = null;              // in-flight AI call
+let drawerMode = null;
+let newGameArmed = 0;
+const draft = { role:'CEO', domain:DOMAINS[0], customDomain:'', size:'scaleup', tf:'3y', name:'', source:'ai' };
+
+function save(){ try { if (S) localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch(e){} }
+function loadSave(){ try { const r = localStorage.getItem(SAVE_KEY); return r ? JSON.parse(r) : null; } catch(e){ return null; } }
+function clearSave(){ try { localStorage.removeItem(SAVE_KEY); } catch(e){} }
+
+/* ---------- AI bridge: talks to the server in server.js, which calls Groq or any OpenAI-compatible provider ---------- */
+const CODE_KEY = 'thechair.accesscode';
+const AI = { model:'', needsCode:false };
+function getCode(){ try { return localStorage.getItem(CODE_KEY) || ''; } catch(e){ return ''; } }
+function setCode(v){ try { localStorage.setItem(CODE_KEY, v.trim()); } catch(e){} }
+function parseLoose(t){
+  try { return JSON.parse(t); } catch(e){}
+  const f = t.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (f){ try { return JSON.parse(f[1]); } catch(e){} }
+  const a = t.indexOf('{'), b = t.lastIndexOf('}');
+  if (a >= 0 && b > a){ try { return JSON.parse(t.slice(a, b+1)); } catch(e){} }
+  return undefined;
+}
+function makeSampler(){
+  async function call(input, opts, json){
+    opts = opts || {};
+    const messages = typeof input === 'string' ? [{ role:'user', content:input }] : input;
+    if (opts.signal && opts.signal.aborted) throw { code:'cancelled' };
+    let res, data = {};
+    try {
+      res = await fetch('/api/llm', {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', 'X-Access-Code':getCode() },
+        body:JSON.stringify({ messages, json, tier: opts.modelTier === 'quick' ? 'quick' : 'default' }),
+        signal:opts.signal
+      });
+      data = await res.json().catch(() => ({}));
+    } catch(e){
+      if (opts.signal && opts.signal.aborted) throw { code:'cancelled' };
+      throw { code:'upstream_error' };
+    }
+    if (opts.signal && opts.signal.aborted) throw { code:'cancelled' };
+    if (!res.ok) throw { code: data.error || (res.status === 429 ? 'rate_limited' : 'upstream_error'), message: data.message || '' };
+    const text = String(data.text || '');
+    if (!text.trim()) throw { code:'empty_completion' };
+    if (opts.onText){ try { opts.onText({ text, delta:text }); } catch(e){} }
+    return { text, truncated: !!data.truncated };
+  }
+  const fn = (input, opts) => call(input, opts, false);
+  fn.json = async (input, opts) => {
+    const { text, truncated } = await call(input, opts, true);
+    const v = parseLoose(text);
+    if (v === undefined || (truncated && typeof v !== 'object')) throw { code:'invalid_json', text };
+    return v;
+  };
+  return fn;
+}
+
+(async () => {
+  try {
+    const r = await fetch('/api/health', { cache:'no-store' });
+    const hj = await r.json();
+    if (hj && hj.ai){ sample = makeSampler(); AI.model = String(hj.model || ''); AI.needsCode = !!hj.needsCode; }
+  } catch(e){ sample = null; }
+  aiStatus = sample ? 'on' : 'off';
+  if (!sample) draft.source = 'bank';
+  if (!S || S.phase === 'setup') renderSetup();
+})();
+
+/* ---------- Time ---------- */
+function periodLabel(t){
+  const tf = TFS[S.tf];
+  if (tf.unit === 'quarter') return `Year ${Math.floor(t/4)+1}, quarter ${t%4+1}`;
+  if (tf.unit === 'half') return `Year ${Math.floor(t/2)+1}, ${t%2 ? 'second' : 'first'} half`;
+  return `Year ${t+1}`;
+}
+function dur(n){
+  const months = Math.round(n * TFS[S.tf].p * 12);
+  if (months < 12) return months + ' months';
+  const y = months / 12;
+  return y === 1 ? 'a year' : (Number.isInteger(y) ? y + ' years' : y.toFixed(1) + ' years');
+}
+
+/* ---------- Mechanics ---------- */
+function applyEffects(e, m){
+  for (const k in (e || {})){
+    const v = e[k]; if (!v) continue;
+    if (k === 'rev') m.rev = Math.max(.01, m.rev * (1 + v/100));
+    else if (k === 'cash') m.cash += v/100 * Math.max(Math.abs(m.cash), m.rev*.5, S.start.cash*.5);
+    else if (k === 'growth') m.growth = clamp(m.growth + v, -60, 250);
+    else if (k === 'margin') m.margin = clamp(m.margin + v, -400, 60);
+    else if (k === 'staff') m.staff = Math.max(1, Math.round(m.staff * (1 + v/100)));
+    else if (k in m) m[k] = clamp(m[k] + v, 0, 100);
+  }
+}
+function natural(){
+  const m = S.m, p = TFS[S.tf].p, b = SIZES[S.size].base, notes = [];
+  m.rev *= 1 + m.growth/100 * p;
+  m.cash += m.rev * m.margin/100 * p;
+  if (m.margin < 0) m.margin += -m.margin * .3 * p;
+  m.growth += (b - m.growth) * .12;
+  for (const k of ['morale','sat','rep']) m[k] += (55 - m[k]) * .08;
+  m.debt = clamp(m.debt + 6*p, 0, 100);
+  if (m.debt > 75){ m.growth -= 2; m.sat -= 2; m.morale -= 2; notes.push('Heavy tech debt is slowing every release and frustrating customers.'); }
+  if (m.morale < 30){ m.staff = Math.round(m.staff*.97); m.growth -= 2; notes.push('Morale is low, and good people are quitting.'); }
+  if (m.sat < 30){ m.rev *= .97; notes.push('Unhappy customers are cancelling.'); }
+  m.board += clamp((m.growth - b)/8, -3, 3);
+  const rw = runway(m);
+  if (rw !== null && rw < 6){ m.board -= 5; notes.push('With under six months of cash left, the board is alarmed.'); }
+  m.staff = Math.max(1, Math.round(m.staff * (1 + Math.max(0, m.growth)/100 * p * .4)));
+  for (const k of ['morale','sat','rep','board']) m[k] = clamp(m[k], 0, 100);
+  return notes;
+}
+
+function newGame(d){
+  const sz = SIZES[d.size], tf = TFS[d.tf];
+  const domain = d.domain === 'Other' ? (d.customDomain.trim() || 'General business') : d.domain;
+  const m = { rev:sz.rev, cash:sz.cash, growth:sz.growth, margin:sz.margin, staff:sz.staff, morale:sz.morale, sat:sz.sat, debt:sz.debt, rep:sz.rep, board:sz.board };
+  S = {
+    v:1, role:d.role, domain, size:d.size, tf:d.tf, name:d.name.trim() || NAMES[Math.floor(Math.random()*NAMES.length)],
+    source: (d.source === 'ai' && sample) ? 'ai' : 'bank',
+    total: tf.turns, turn:0, m, start:copy(m), mark:copy(m), markPrev:copy(m),
+    pending:[], log:[], styles:{}, terms:{}, landed:[], drift:[],
+    bankOrder: shuffle(BANK.map((_,i)=>i)), bankUsed:[],
+    scenario:null, outcome:null, phase:'loading', error:null, notice:null,
+    customDraft:'', customError:null, mentorOpen:false, mentorDraft:''
+  };
+  save();
+  loadScenario();
+}
+function shuffle(a){ for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+function pickBank(){
+  const avail = S.bankOrder.filter(i => !S.bankUsed.includes(i));
+  const pool = avail.length ? avail : S.bankOrder.slice();
+  const rw = runway(S.m);
+  let idx = pool[0];
+  const prefer = id => pool.find(i => BANK[i].id === id);
+  if (rw !== null && rw < 10 && prefer('capital') !== undefined) idx = prefer('capital');
+  else if (S.m.debt > 70 && prefer('rewrite') !== undefined) idx = prefer('rewrite');
+  S.bankUsed.push(idx);
+  const b = BANK[idx], fill = t => t.replaceAll('{co}', S.name);
+  return {
+    src:'bank', type:b.type, title:b.title,
+    situation:b.situation.map(fill), stakeholders:b.stakeholders.slice(),
+    glossary:b.glossary.map(([term,meaning]) => ({term, meaning})),
+    analogy:b.analogy, caseStudy:b.caseStudy,
+    options:b.options.map(x => ({...copy(x), detail:fill(x.detail)})),
+    mentor:[]
+  };
+}
+
+function setScenario(sc){
+  S.scenario = sc; S.phase = 'scenario'; S.error = null;
+  S.markPrev = S.mark; S.mark = copy(S.m);
+  S.customDraft = ''; S.customError = null; S.mentorOpen = false; S.mentorDraft = '';
+  for (const g of sc.glossary) if (g.term && g.meaning) S.terms[g.term] = g.meaning;
+  save(); render(); window.scrollTo({top:0});
+}
+
+const FATAL = ['not_granted','sampling_disabled','not_declared','capability_disabled','capability_removed','not_configured','bad_key'];
+function errCopy(e){
+  const c = e && e.code;
+  if (c === 'rate_limited') return 'You’ve reached a usage limit for now. Wait a little and try again, or use a built-in scenario.';
+  if (c === 'needs_code') return 'This game is protected by an access code. Enter the code below, then try again.';
+  if (c === 'too_large') return 'That request was too long. Shorten your text and try again.';
+  if (c === 'refused') return 'The AI declined to write that one. Try again, or use a built-in scenario.';
+  if (c === 'invalid_json' || c === 'empty_completion' || c === 'bad_shape') return 'The response came back incomplete. Try again.';
+  return 'Couldn’t reach the AI server. If it was asleep, it may need a minute to wake up. Try again shortly.';
+}
+
+async function loadScenario(){
+  S.phase = 'loading'; S.error = null; render();
+  if (S.source !== 'ai' || !sample){ setScenario(pickBank()); return; }
+  const ctl = new AbortController();
+  busy = { kind:'scenario', ctl, t0:Date.now(), chars:0, toBank:false };
+  render();
+  try {
+    const j = await sample.json(scenarioPrompt(), { signal:ctl.signal, onText:({text}) => { if (busy) busy.chars = text.length; } });
+    const sc = normScenario(j);
+    busy = null;
+    setScenario(sc);
+  } catch(e){
+    const toBank = busy && busy.toBank;
+    busy = null;
+    if (e && e.code === 'cancelled'){ if (toBank) setScenario(pickBank()); return; }
+    if (e && FATAL.includes(e.code)){
+      S.source = 'bank';
+      S.notice = 'The AI server isn’t set up correctly (check its API key), so the game switched to the built-in scenario library.';
+      setScenario(pickBank()); return;
+    }
+    S.phase = 'error'; S.error = errCopy(e); S.errorCode = e && e.code; save(); render();
+  }
+}
+
+function normE(e){
+  const out = {};
+  if (!e || typeof e !== 'object') return out;
+  for (let k in e){
+    const key = ALIAS[k] || k;
+    if (!RANGES[key]) continue;
+    const v = Number(e[k]);
+    if (!Number.isFinite(v)) continue;
+    const r = Math.round(clamp(v, RANGES[key][0], RANGES[key][1]));
+    if (r) out[key] = r;
+  }
+  return out;
+}
+const normH = h => ({ note: str(h && h.note, ''), e: normE(h && (h.effects || h.e)) });
+function normOpt(x){
+  if (!x || typeof x !== 'object') throw {code:'bad_shape'};
+  return { label:str(x.label,'Unnamed option'), detail:str(x.detail,''), style:STYLES[x.style] ? x.style : 'bold',
+    short:normH(x.short), medium:normH(x.medium), long:normH(x.long), lesson:str(x.lesson,''), feedback:str(x.feedback,'') };
+}
+function normScenario(j){
+  if (!j || !Array.isArray(j.options) || j.options.length < 2) throw {code:'bad_shape'};
+  let sit = j.situation;
+  sit = Array.isArray(sit) ? sit.map(String).filter(Boolean) : String(sit || '').split(/\n\s*\n/).filter(Boolean);
+  const cs = j.caseStudy && typeof j.caseStudy === 'object' && str(j.caseStudy.summary,'') ? { company:str(j.caseStudy.company,'A real company'), year:str(String(j.caseStudy.year||''),''), summary:str(j.caseStudy.summary,'') } : null;
+  return {
+    src:'ai', type:str(j.type,'Strategy'), title:str(j.title,'A decision lands on your desk'),
+    situation:sit, stakeholders:Array.isArray(j.stakeholders) ? j.stakeholders.map(String).slice(0,4) : [],
+    glossary:Array.isArray(j.glossary) ? j.glossary.filter(g => g && g.term).map(g => ({term:String(g.term), meaning:String(g.meaning||'')})).slice(0,8) : [],
+    analogy:str(j.analogy,''), caseStudy:cs,
+    options:j.options.slice(0,4).map(normOpt), mentor:[]
+  };
+}
+
+/* ---------- Prompts ---------- */
+const EFFECT_SPEC = `Effects are changes, using only these keys (leave out any that don't change):
+rev: % change to yearly revenue (-20 to 20)
+cash: % change to cash reserves (-50 to 60)
+growth: change to the yearly revenue growth rate, in percentage points (-10 to 10)
+margin: change to profit margin, in percentage points (-10 to 10)
+staff: % change to headcount (-25 to 15)
+morale, sat (customer satisfaction), rep (reputation), board (board confidence): points on a 0-100 scale (-20 to 20)
+debt: tech debt points on a 0-100 scale; positive means MORE debt, which is bad (-25 to 20)
+Keep magnitudes realistic for a company this size; most single effects should be under 10.`;
+
+function brief(){
+  const m = S.m, sz = SIZES[S.size], rw = runway(m), tf = TFS[S.tf];
+  const recent = S.log.slice(-4).map(l => `- ${l.when}: "${l.title}", chose "${l.choice}"`).join('\n') || '- none yet';
+  const pend = S.pending.map(p => `- from "${p.from}" (${p.h}-term, ${p.due >= S.total ? 'lands after the player leaves' : 'lands at decision ' + (p.due+1)}): ${p.note}`).join('\n') || '- none';
+  return `Company: ${S.name}, a ${sz.label.toLowerCase()} company in ${S.domain} (it started as ${sz.desc}).
+Player role: ${ROLES[S.role].full}.
+Timeline: ${S.total} decisions over ${tf.label}; each decision covers ${dur(1)}. Now at decision ${S.turn+1} (${periodLabel(S.turn)}).
+Current numbers: yearly revenue ${money(m.rev)}; cash ${money(m.cash)}; ${rw === null ? 'profitable, not burning cash' : 'runway about ' + Math.round(rw) + ' months'}; revenue growth ${m.growth.toFixed(1)}% per year; profit margin ${m.margin.toFixed(1)}%; headcount ${num(m.staff)}; team morale ${Math.round(m.morale)}/100; customer satisfaction ${Math.round(m.sat)}/100; tech debt ${Math.round(m.debt)}/100 (higher is worse); reputation ${Math.round(m.rep)}/100; board confidence ${Math.round(m.board)}/100.
+Recent decisions:
+${recent}
+Consequences still pending:
+${pend}`;
+}
+
+function scenarioPrompt(){
+  const tf = TFS[S.tf], role = ROLES[S.role];
+  const recentTypes = S.log.slice(-3).map(l => l.type).filter(Boolean).join(', ') || 'none';
+  return `You write scenarios for "The Chair", a simulator that trains someone to become a ${role.short}. ${role.focus}
+The player is learning, so write in plain, concrete language. The first time you use any business or technical term, abbreviation or jargon verb (for example "churn", "ARR", "to vest", "to refactor"), briefly explain it in the text and add it to "glossary" with a one-sentence plain meaning.
+
+${brief()}
+
+Write decision ${S.turn+1} of ${S.total}. Make it a genuine dilemma specific to a ${SIZES[S.size].label.toLowerCase()} ${S.domain} company at this moment, reacting to the numbers and earlier decisions where it makes sense (if runway is under 9 months, cash should be at stake; if tech debt is above 65, it should bite; if a pending consequence is about to land, you may build on it). Choose a type different from the recent ones (${recentTypes}) from: ${TYPES.join(', ')}. Later decisions can carry bigger stakes.
+Give 3 or 4 options. Each must have a real upside and a real cost, with no obviously correct answer, and an option's short-, medium- and long-term consequences should often pull in different directions.
+
+Timing: "short" lands immediately, "medium" lands ${dur(tf.med)} later, "long" lands ${dur(tf.long)} later${tf.long + S.turn >= S.total ? ' (after the player has left the job, which is part of the lesson)' : ''}.
+
+${EFFECT_SPEC}
+
+For "caseStudy", use a real, well-documented company story that teaches the same lesson, and include only facts you are confident about. For "analogy", give one everyday comparison that makes the core tension intuitive. Keep the situation under 140 words.
+
+Reply with only JSON in this shape:
+{"type":"one of the types","title":"under 8 words","situation":["paragraph","paragraph"],"stakeholders":["Role: what they are pushing for, one short line"],"glossary":[{"term":"...","meaning":"..."}],"analogy":"...","caseStudy":{"company":"...","year":"...","summary":"2-3 sentences: what happened and the lesson"},"options":[{"label":"an action, under 9 words","detail":"one or two sentences","style":"bold|cautious|people|customer|tech|finance","short":{"note":"what happens","effects":{"rev":0}},"medium":{"note":"...","effects":{}},"long":{"note":"...","effects":{}},"lesson":"one sentence a seasoned ${role.short} would want them to remember"}]}`;
+}
+
+function evalPrompt(text){
+  const sc = S.scenario, tf = TFS[S.tf], role = ROLES[S.role];
+  return `You are the consequence engine for "The Chair", a simulator that trains someone to become a ${role.short}.
+
+${brief()}
+
+The current decision: ${sc.title}
+${sc.situation.join('\n')}
+Options that were offered: ${sc.options.map(x => x.label).join('; ')}
+
+Instead of those, the player wrote their own decision:
+"""${text.slice(0, 2000)}"""
+
+Judge it like an experienced board member. Make the consequences realistic: reward thoughtful, specific plans; give vague plans, or plans that ignore real constraints (like conjuring money or people out of nowhere), muted or negative results. If it isn't a decision about this situation, treat it as putting the decision off.
+Timing: "short" lands immediately, "medium" lands ${dur(tf.med)} later, "long" lands ${dur(tf.long)} later.
+
+${EFFECT_SPEC}
+
+Write in plain language and briefly explain any jargon you use.
+Reply with only JSON:
+{"label":"their decision restated in under 9 words","detail":"one sentence","style":"bold|cautious|people|customer|tech|finance","feedback":"2-3 sentences of candid, kind coaching: what was strong and what they missed","short":{"note":"...","effects":{}},"medium":{"note":"...","effects":{}},"long":{"note":"...","effects":{}},"lesson":"one sentence"}`;
+}
+
+function mentorPrompt(q){
+  const sc = S.scenario, role = ROLES[S.role];
+  return `You are a seasoned mentor coaching someone training to become a ${role.short}.
+
+${brief()}
+
+They face this decision: ${sc.title}
+${sc.situation.join('\n')}
+Options: ${sc.options.map(x => x.label).join('; ')}
+
+Their question: "${q.slice(0, 800)}"
+
+Answer in under 130 words of plain text with no markdown. Define any jargon in plain words, and use an everyday analogy if it helps. Help them think: the tradeoffs, the questions a strong ${role.short} would ask, what to watch for. Don't tell them which option to choose.`;
+}
+
+function reviewPrompt(){
+  const role = ROLES[S.role], s = S.start, m = S.m;
+  const fmt = x => `revenue ${money(x.rev)}, cash ${money(x.cash)}, growth ${x.growth.toFixed(0)}%/yr, margin ${x.margin.toFixed(0)}%, morale ${Math.round(x.morale)}, customer satisfaction ${Math.round(x.sat)}, tech debt ${Math.round(x.debt)}, reputation ${Math.round(x.rep)}, board confidence ${Math.round(x.board)}`;
+  const log = S.log.map(l => `- ${l.when}: "${l.title}", chose "${l.choice}" (${STYLES[l.style]}${l.custom ? ', their own idea' : ''})`).join('\n');
+  const ending = S.over === 'cash' ? 'The company ran out of cash.' : S.over === 'board' ? 'The board replaced them.' : 'They completed the full term.';
+  return `You are an executive coach writing a review for someone who just finished "The Chair", a simulator training them to be a ${role.short}. They ran ${S.name}, a ${SIZES[S.size].label.toLowerCase()} ${S.domain} company, over ${TFS[S.tf].label}. ${ending}
+Start: ${fmt(s)}. Estimated value ${money(valuation(s))}.
+When they left: ${fmt(m)}. Estimated value ${money(S.valueExit)}.
+After the long-term consequences of their decisions landed: estimated value ${money(S.valueLegacy)}.
+Decisions:
+${log}
+
+Write a candid, warm review in plain text with no markdown symbols, 220 to 300 words, as four short paragraphs that begin with these labels followed by a colon: Overall, Strengths, Blind spots, Practice next. Refer to specific decisions. Comment on whether they traded long-term health for short-term numbers or the reverse. In "Practice next", suggest two concrete habits or concepts to study, explaining any jargon in plain words and using one everyday analogy.`;
+}
+
+/* ---------- Decisions ---------- */
+function resolveDecision(opt, custom){
+  const tf = TFS[S.tf], t = S.turn;
+  applyEffects(opt.short.e, S.m);
+  S.pending.push({ due:t+tf.med,  h:'medium', e:opt.medium.e, note:opt.medium.note, from:opt.label });
+  S.pending.push({ due:t+tf.long, h:'long',   e:opt.long.e,   note:opt.long.note,   from:opt.label });
+  S.styles[opt.style] = (S.styles[opt.style] || 0) + 1;
+  S.log.push({ when:periodLabel(t), type:S.scenario.type, title:S.scenario.title, choice:opt.label, style:opt.style, custom });
+  S.outcome = { opt, custom };
+  S.phase = 'outcome';
+  save(); render();
+  const st = $('.stage'); if (st) st.scrollIntoView({block:'start'});
+}
+
+async function commitCustom(){
+  const text = (S.customDraft || '').trim();
+  if (text.length < 15){ S.customError = 'Add a little more detail: what you’d do, who does it, and why.'; render(); return; }
+  const ctl = new AbortController();
+  busy = { kind:'eval', ctl, t0:Date.now(), chars:0 };
+  S.phase = 'evaluating'; S.customError = null; render();
+  try {
+    const j = await sample.json(evalPrompt(text), { signal:ctl.signal, cache:false, onText:({text}) => { if (busy) busy.chars = text.length; } });
+    busy = null;
+    const opt = normOpt(j); opt.customText = text;
+    resolveDecision(opt, true);
+  } catch(e){
+    busy = null;
+    S.phase = 'scenario';
+    if (e && FATAL.includes(e.code)){ S.source = 'bank'; S.customError = 'The AI server isn’t available, so choose one of the options above.'; }
+    else if (!(e && e.code === 'cancelled')) S.customError = errCopy(e);
+    render();
+  }
+}
+
+async function askMentor(){
+  const q = (S.mentorDraft || '').trim();
+  if (!q || !sample) return;
+  const sc = S.scenario;
+  const item = { q, a:'', state:'pending' };
+  sc.mentor.push(item); S.mentorDraft = ''; S.mentorOpen = true; render();
+  const idx = sc.mentor.length - 1;
+  try {
+    const { text } = await sample(mentorPrompt(q), { modelTier:'quick', cache:false, onText:({text}) => {
+      item.a = text; const el = document.getElementById('ma-' + idx); if (el) el.textContent = text;
+    }});
+    item.a = text; item.state = 'done';
+  } catch(e){
+    item.a = (e && e.text) || ''; item.state = 'error'; item.err = errCopy(e);
+  }
+  save(); if (S.phase === 'scenario') render();
+}
+
+function advance(){
+  S.drift = natural();
+  S.turn++;
+  bridgeIfPossible();
+  if (S.m.cash <= 0) return endGame('cash');
+  if (S.turn >= S.total) return endGame(null);
+  S.landed = [];
+  S.pending = S.pending.filter(p => {
+    if (p.due <= S.turn){ applyEffects(p.e, S.m); S.landed.push(p); return false; }
+    return true;
+  });
+  bridgeIfPossible();
+  if (S.m.cash <= 0) return endGame('cash');
+  if (S.m.board <= 12) return endGame('board');
+  S.outcome = null;
+  loadScenario();
+}
+
+function bridgeIfPossible(){
+  const m = S.m;
+  if (m.cash > 0 || (S.bridges || 0) >= 2 || m.board < 30) return;
+  const burn = Math.max(-m.rev * m.margin / 100, m.rev * .1);
+  m.cash = burn * .75;
+  m.board = clamp(m.board - 14, 0, 100); m.morale = clamp(m.morale - 6, 0, 100);
+  S.bridges = (S.bridges || 0) + 1;
+  S.terms['Bridge round'] = BASE_TERMS['Bridge round'];
+  (S.drift = S.drift || []).push(`Cash hit zero. Investors put in an emergency bridge round on harsh terms, enough for about nine months. Board confidence fell sharply.${S.bridges >= 2 ? ' They’ve said there won’t be another one.' : ''}`);
+}
+
+function endGame(reason){
+  S.over = reason; S.phase = 'end';
+  S.valueStart = valuation(S.start);
+  S.valueExit = valuation(S.m);
+  const lm = copy(S.m);
+  S.pending.forEach(p => applyEffects(p.e, lm));
+  S.legacyM = lm; S.valueLegacy = valuation(lm);
+  S.review = null; S.reviewState = null;
+  save(); render(); window.scrollTo({top:0});
+  requestReview();
+}
+
+async function requestReview(){
+  if (S.source !== 'ai' || !sample){ S.review = localReview(); S.reviewState = 'local'; save(); render(); return; }
+  S.reviewState = 'pending'; render();
+  try {
+    const { text } = await sample(reviewPrompt(), { onText:({text}) => {
+      S.review = text; const el = $('#review'); if (el) el.innerHTML = reviewHTML(text);
+    }});
+    S.review = text; S.reviewState = 'done';
+  } catch(e){
+    S.review = localReview(); S.reviewState = 'local';
+  }
+  save(); render();
+}
+
+function localReview(){
+  const s = S.start, m = S.m;
+  const top = Object.entries(S.styles).sort((a,b) => b[1]-a[1])[0];
+  const exitCh = (S.valueExit/S.valueStart - 1) * 100, legCh = (S.valueLegacy/S.valueExit - 1) * 100;
+  const changes = ['morale','sat','rep','board'].map(k => [k, m[k]-s[k]]).sort((a,b) => b[1]-a[1]);
+  const nice = { morale:'team morale', sat:'customer satisfaction', rep:'reputation', board:'board confidence' };
+  const out = [];
+  out.push(`Overall: You left ${S.name} with an estimated value ${exitCh >= 0 ? 'up' : 'down'} ${Math.abs(exitCh).toFixed(0)}% from where you started. ${S.over === 'cash' ? 'The company ran out of cash, which ends most stories regardless of how good the strategy was.' : S.over === 'board' ? 'The board lost confidence and replaced you, a reminder that results and trust both have to be managed.' : 'You finished the full term.'}`);
+  out.push(`Strengths: Your most common instinct was ${top ? STYLES[top[0]].toLowerCase() : 'balanced'}. Your biggest gain was in ${nice[changes[0][0]]} (${sgn(changes[0][1])} points).`);
+  out.push(`Blind spots: ${nice[changes[3][0]]} moved ${sgn(changes[3][1])} points. ${m.debt - s.debt > 10 ? 'Tech debt also climbed noticeably, which quietly taxes every future plan.' : ''} ${legCh < 0 ? `After you left, your pending decisions knocked about ${Math.abs(legCh).toFixed(0)}% off the company’s value: some wins were borrowed from the future.` : `After you left, your long-term bets added about ${legCh.toFixed(0)}% to the company’s value: you planted trees others will sit under.`}`);
+  out.push('Practice next: Before each big call, write down what you expect to happen in six months and in two years, then check back. It’s like keeping a training log at the gym: you only improve what you measure. Second, study “second-order effects,” the consequences of the consequences, by asking “and then what?” at least twice.');
+  return out.join('\n\n');
+}
+
+/* ---------- Rendering ---------- */
+function chips(e){
+  const ks = Object.keys(e || {}).filter(k => e[k] && EK[k]);
+  if (!ks.length) return '<p class="sealed">No measurable change.</p>';
+  return '<ul class="chips">' + ks.map(k => {
+    const v = e[k], good = k === 'debt' ? v < 0 : v > 0, [name,u] = EK[k];
+    return `<li class="chip ${good ? 'good' : 'bad'}">${name} ${v > 0 ? '+' : '−'}${Math.abs(v)}${u}</li>`;
+  }).join('') + '</ul>';
+}
+
+function renderNav(){
+  const nav = $('#topnav');
+  if (!S || S.phase === 'setup'){ nav.innerHTML = `<button class="link" data-act="glossary">Glossary</button>`; return; }
+  nav.innerHTML = `<button class="link" data-act="glossary">Glossary</button><button class="link" data-act="log">Decisions</button>` +
+    (S.phase === 'end' ? '' : `<button class="link ${newGameArmed > Date.now() ? 'warn' : ''}" data-act="newgame">${newGameArmed > Date.now() ? 'Tap again to quit' : 'New game'}</button>`);
+}
+
+function render(){
+  renderNav();
+  if (!S || S.phase === 'setup') return renderSetup();
+  if (S.phase === 'end') return renderEnd();
+  renderGame();
+}
+
+function renderSetup(){
+  renderNav();
+  const saved = loadSave();
+  const aiOn = aiStatus === 'on';
+  const sel = (k,v) => draft[k] === v ? 'true' : 'false';
+  app.innerHTML = `
+  <section class="hero">
+    <h1>Take the chair</h1>
+    <p class="lede">Run a company one decision at a time. Every choice ripples: some effects land today, some months from now, and some after you’ve left the job.</p>
+    <div class="ripple" aria-hidden="true"><div>Today</div><div>Months later</div><div>After you’ve gone</div></div>
+  </section>
+  ${saved && saved.phase !== 'end' && saved.phase !== 'setup' ? `
+  <div class="resume">
+    <p style="margin:0 0 .6rem"><b>Game in progress:</b> ${esc(saved.role)} of ${esc(saved.name)}, decision ${saved.turn+1} of ${saved.total}.</p>
+    <div class="row"><button class="btn" data-act="resume">Resume game</button><button class="btn ghost" data-act="discard">Discard it</button></div>
+  </div>` : ''}
+  <div class="setup-grid">
+    <fieldset>
+      <legend>Your role</legend>
+      <p class="hint">Pick the seat you’re training for.</p>
+      <div class="choices">
+        ${Object.entries(ROLES).map(([k,r]) => `<button class="choice" data-act="set" data-k="role" data-v="${k}" aria-pressed="${sel('role',k)}"><b>${esc(r.full)}</b><span>${esc(r.blurb)}</span></button>`).join('')}
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Industry</legend>
+      <p class="hint">Scenarios are written for this industry.</p>
+      <div class="pills">
+        ${DOMAINS.concat('Other').map(d => `<button class="pill" data-act="set" data-k="domain" data-v="${esc(d)}" aria-pressed="${sel('domain',d)}">${esc(d)}</button>`).join('')}
+      </div>
+      ${draft.domain === 'Other' ? `<label class="field"><span>Describe the industry</span><input id="dom-other" maxlength="80" placeholder="For example: craft breweries, satellite imaging, legal services" value="${esc(draft.customDomain)}"></label>` : ''}
+      ${draft.domain === 'Other' && !aiOn ? '<p class="hint" style="margin-top:.5rem">Built-in scenarios are general, so a custom industry mainly shapes the AI-written ones.</p>' : ''}
+    </fieldset>
+    <fieldset>
+      <legend>Company size</legend>
+      <p class="hint">Bigger companies have more cash but move more slowly; startups move fast and can run out of money.</p>
+      <div class="choices">
+        ${Object.entries(SIZES).map(([k,s]) => `<button class="choice" data-act="set" data-k="size" data-v="${k}" aria-pressed="${sel('size',k)}"><b>${s.label}</b><span>${s.desc}</span></button>`).join('')}
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Timeframe</legend>
+      <p class="hint">Longer tenures let you see your own long-term consequences land. Shorter ones show what you leave for the next person.</p>
+      <div class="choices">
+        ${Object.entries(TFS).map(([k,t]) => `<button class="choice" data-act="set" data-k="tf" data-v="${k}" aria-pressed="${sel('tf',k)}"><b>${t.label}</b><span>${t.desc}</span></button>`).join('')}
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Company name</legend>
+      <label class="field" style="margin-top:.4rem"><span class="muted small" style="font-weight:400">Optional. Leave blank for a random one.</span><input id="co-name" maxlength="40" placeholder="For example: Kestrel" value="${esc(draft.name)}"></label>
+    </fieldset>
+    <fieldset>
+      <legend>Scenarios</legend>
+      <p class="hint" id="ai-status">${aiStatus === 'checking' ? 'Checking whether the AI server is available…' : aiOn ? `Scenarios will be written by ${esc(AI.model || 'your AI model')} through your server.` : 'The AI server isn’t reachable or has no API key set, so the built-in library will be used.'}</p>
+      <div class="choices">
+        <button class="choice" data-act="set" data-k="source" data-v="ai" aria-pressed="${sel('source','ai')}" ${aiOn ? '' : 'disabled'}><b>Written by AI</b><span>Fresh, industry-specific dilemmas that react to your numbers. You can also write your own decisions and ask a mentor.</span></button>
+        <button class="choice" data-act="set" data-k="source" data-v="bank" aria-pressed="${sel('source','bank')}"><b>Built-in library</b><span>12 classic leadership dilemmas with real case studies. Works instantly, no usage needed.</span></button>
+      </div>
+      ${aiOn && AI.needsCode && draft.source === 'ai' ? `<label class="field"><span>Access code</span><input class="codein" type="password" autocomplete="off" placeholder="Ask whoever runs this game" value="${esc(getCode())}"></label>` : ''}
+    </fieldset>
+  </div>
+  <div class="startbar" style="margin-top:2rem">
+    <button class="btn" data-act="start" ${aiStatus === 'checking' && draft.source === 'ai' ? 'disabled' : ''}>Take the chair</button>
+    <span class="muted small">${esc(ROLES[draft.role].short)} of a ${SIZES[draft.size].label.toLowerCase()} for ${TFS[draft.tf].label}</span>
+  </div>`;
+}
+
+function metricsHTML(){
+  const m = S.m, ref = S.phase === 'outcome' ? S.mark : S.markPrev, rw = runway(m);
+  const d = (k, pct) => {
+    const a = m[k], b = ref[k];
+    if (pct){ if (!b) return ''; const c = (a/b - 1)*100; if (Math.abs(c) < .5) return ''; return `<span class="mdelta ${c > 0 ? 'up' : 'down'}">${sgn(c)}%</span>`; }
+    const c = a - b; if (Math.abs(c) < .5) return '';
+    const good = k === 'debt' ? c < 0 : c > 0;
+    return `<span class="mdelta ${good ? 'up' : 'down'}">${sgn(c)}</span>`;
+  };
+  const bar = (v, inv) => { const g = inv ? 100 - v : v; return `<div class="bar"><i class="${g >= 55 ? 'ok' : g >= 35 ? 'warn' : 'risk'}" style="width:${clamp(v,0,100)}%"></i></div>`; };
+  const tile = (term, label, val, delta, extra='') => `<button class="metric" data-act="term" data-term="${esc(term)}"><span class="mlabel">${label}</span><span class="mval">${val}</span>${delta}${extra}</button>`;
+  return `<h2>Company dashboard</h2><div class="mgrid">
+    ${tile('Annual revenue','Yearly revenue', money(m.rev), d('rev',true))}
+    ${tile('Cash','Cash', money(m.cash), d('cash',true))}
+    ${tile('Runway','Runway', rw === null ? 'Profitable' : Math.round(rw) + ' mo', '', rw !== null ? bar(clamp(rw/36*100,0,100)) : '')}
+    ${tile('Growth rate','Growth per year', m.growth.toFixed(0) + '%', d('growth'))}
+    ${tile('Profit margin','Profit margin', m.margin.toFixed(0) + '%', d('margin'))}
+    ${tile('Headcount','Headcount', num(m.staff), d('staff',true))}
+    ${tile('Team morale','Team morale', Math.round(m.morale), d('morale'), bar(m.morale))}
+    ${tile('Customer satisfaction','Customer satisfaction', Math.round(m.sat), d('sat'), bar(m.sat))}
+    ${tile('Tech debt','Tech debt', Math.round(m.debt), d('debt'), bar(m.debt, true))}
+    ${tile('Reputation','Reputation', Math.round(m.rep), d('rep'), bar(m.rep))}
+    ${tile('Board confidence','Board confidence', Math.round(m.board), d('board'), bar(m.board))}
+  </div>
+  <button class="valuebox" data-act="term" data-term="Valuation"><span class="mlabel">Estimated company value</span><span class="mval">${money(valuation(m))}</span><span class="mlabel">Started at ${money(valuation(S.start))}</span></button>
+  ${S.drift && S.drift.length && S.phase !== 'outcome' ? `<div class="drift">${S.drift.map(n => `<p>${esc(n)}</p>`).join('')}</div>` : ''}`;
+}
+
+function timelineHTML(){
+  const slots = [];
+  for (let i = 0; i < S.total; i++){
+    const cls = i < S.turn ? 'past' : i === S.turn ? 'now' : 'future';
+    const ps = S.pending.filter(p => p.due === i);
+    slots.push(`<li class="slot ${cls}" title="${esc(periodLabel(i))}"><span class="tick">${i === S.turn ? 'Now' : i+1}</span><span class="dots">${ps.map(p => `<i class="dot ${p.h === 'medium' ? 'med' : 'long'}"></i>`).join('')}</span></li>`);
+  }
+  const after = S.pending.filter(p => p.due >= S.total);
+  slots.push(`<li class="slot after" title="After your tenure ends"><span class="tick">After you</span><span class="dots">${after.map(p => `<i class="dot ${p.h === 'medium' ? 'med' : 'long'}"></i>`).join('')}</span></li>`);
+  return `<ol class="track" style="--n:${S.total}" aria-label="Timeline of decisions and pending consequences">${slots.join('')}</ol>
+  <p class="legend"><span><i class="dot med"></i>Medium-term consequence on its way</span><span><i class="dot long"></i>Long-term consequence on its way</span></p>`;
+}
+
+function renderGame(){
+  const role = ROLES[S.role];
+  app.innerHTML = `
+  <section class="status">
+    <span class="co">${esc(S.name)}, ${esc(SIZES[S.size].label.toLowerCase())} in ${esc(S.domain)}</span>
+    <h1 class="period">${esc(periodLabel(S.turn))}</h1>
+    <p class="sub">Decision ${S.turn+1} of ${S.total} as ${esc(role.short)}. Each decision covers ${dur(1)}.</p>
+    ${timelineHTML()}
+  </section>
+  <div class="cols">
+    <aside class="metrics">${metricsHTML()}</aside>
+    <section class="stage">${stageHTML()}</section>
+  </div>`;
+  const ta = $('#cd'); if (ta) ta.value = S.customDraft || '';
+}
+
+function stageHTML(){
+  if (S.phase === 'loading'){
+    return `<div class="loading" aria-live="polite"><div class="pulse"><i></i><i></i><i></i></div>
+      <p style="margin:0 0 .3rem;font-weight:700">${S.turn === 0 ? 'Drafting your first briefing' : 'Drafting your next briefing'}</p>
+      <p class="muted small" id="busy-line" style="margin:0 0 1rem">This usually takes 10 to 40 seconds.</p>
+      ${busy ? '<button class="btn ghost" data-act="tobank">Use a built-in scenario instead</button>' : ''}</div>`;
+  }
+  if (S.phase === 'error'){
+    return `<div class="errbox" role="alert"><p style="margin:0 0 .8rem">${esc(S.error)}</p>
+      ${S.errorCode === 'needs_code' ? `<label class="field" style="margin:0 0 .8rem"><span>Access code</span><input class="codein" type="password" autocomplete="off" value="${esc(getCode())}"></label>` : ''}
+      <div class="row"><button class="btn" data-act="retry">Try again</button><button class="btn ghost" data-act="bankonce">Use a built-in scenario</button></div></div>`;
+  }
+  if (S.phase === 'outcome') return outcomeHTML();
+  const sc = S.scenario, ai = S.source === 'ai' && sample;
+  const landed = S.landed && S.landed.length ? `<div class="landed"><h3>Consequences landing now</h3>${S.landed.map(p => `<div class="item ${p.h}"><p class="from">${p.h === 'medium' ? 'Medium-term' : 'Long-term'} effect of “${esc(p.from)}”</p><p>${esc(p.note)}</p>${chips(p.e)}</div>`).join('')}</div>` : '';
+  const evaluating = S.phase === 'evaluating';
+  return `
+  ${S.notice ? `<p class="notice">${esc(S.notice)}</p>` : ''}
+  ${landed}
+  <article>
+    <p class="kind">${esc(sc.type)}</p>
+    <h2 class="title">${esc(sc.title)}</h2>
+    <div class="prose">${sc.situation.map(p => `<p>${esc(p)}</p>`).join('')}</div>
+    ${sc.stakeholders.length ? `<ul class="stakes">${sc.stakeholders.map(s => `<li>${esc(s)}</li>`).join('')}</ul>` : ''}
+    ${sc.glossary.length ? `<details class="terms-d"><summary>Terms in this briefing (${sc.glossary.length})</summary><dl class="terms">${sc.glossary.map(g => `<dt>${esc(g.term)}</dt><dd>${esc(g.meaning)}</dd>`).join('')}</dl></details>` : ''}
+    ${sc.analogy ? `<div class="analogy"><h4>Think of it like this</h4><p>${esc(sc.analogy)}</p></div>` : ''}
+    <h3 class="dh">Your decision</h3>
+    ${evaluating ? `<div class="loading" style="padding:1rem 0" aria-live="polite"><div class="pulse"><i></i><i></i><i></i></div><p style="margin:0;font-weight:700">The board is weighing your plan</p><p class="muted small" id="busy-line" style="margin:.2rem 0 0">Working out what happens next.</p></div>` : `
+    <div>${sc.options.map((x,i) => `<button class="opt" data-act="choose" data-i="${i}"><span class="olabel">${esc(x.label)}</span>${x.detail ? `<span class="odetail">${esc(x.detail)}</span>` : ''}</button>`).join('')}</div>
+    ${ai ? `<div class="custom">
+      <label for="cd">Or write your own decision</label>
+      <p class="muted small" style="margin:0">Real executives rarely get a neat menu. Describe what you’d do, who does it, by when, and with what money.</p>
+      <textarea id="cd" maxlength="2000" placeholder="For example: Offer the customer a paid pilot of a general version, staffed by two engineers for six weeks, and…"></textarea>
+      ${S.customError ? `<p class="small" style="color:var(--bad);margin:0 0 .5rem">${esc(S.customError)}</p>` : ''}
+      <button class="btn" data-act="custom">Commit this decision</button>
+    </div>
+    <details class="mentor" ${S.mentorOpen ? 'open' : ''} data-mentor>
+      <summary>Ask a mentor</summary>
+      <p class="muted small" style="margin:.2rem 0 .4rem">Ask about a term, a tradeoff, or how an experienced ${esc(ROLES[S.role].short)} would think about this. The mentor won’t pick for you.</p>
+      ${sc.mentor.map((qa,i) => `<div class="qa"><div class="q">${esc(qa.q)}</div><div class="a" id="ma-${i}">${qa.a ? esc(qa.a) : (qa.state === 'pending' ? '<span class="muted">Thinking…</span>' : '')}</div>${qa.state === 'error' ? `<p class="small" style="color:var(--bad);margin:.2rem 0 0">${esc(qa.err)}</p>` : ''}</div>`).join('')}
+      <div class="qrow"><input id="mq" maxlength="400" placeholder="What does dilution mean for me here?" value="${esc(S.mentorDraft)}" aria-label="Your question for the mentor"><button class="btn" data-act="ask">Ask</button></div>
+    </details>` : ''}`}
+  </article>`;
+}
+
+function outcomeHTML(){
+  const { opt, custom } = S.outcome, tf = TFS[S.tf], sc = S.scenario;
+  const lastTurn = S.turn + 1 >= S.total;
+  const when = n => S.turn + n >= S.total ? `After you’ve left (about ${dur(n)} from now)` : `In ${dur(n)}`;
+  const others = custom ? sc.options : sc.options.filter(x => x !== opt && x.label !== opt.label);
+  return `
+  <article>
+    <p class="kind">${custom ? 'Your own decision' : 'Decision made'}</p>
+    <h2 class="title">${esc(opt.label)}</h2>
+    ${custom && opt.feedback ? `<p class="feedback">${esc(opt.feedback)}</p>` : ''}
+    <div class="wave now"><h4>Right away</h4><p>${esc(opt.short.note)}</p>${chips(opt.short.e)}</div>
+    <div class="wave med"><h4>${when(tf.med)}</h4><p>${esc(opt.medium.note)}</p><p class="sealed">The exact effects are revealed when this lands.</p></div>
+    <div class="wave long"><h4>${when(tf.long)}</h4><p>${esc(opt.long.note)}</p><p class="sealed">${S.turn + tf.long >= S.total ? 'This lands after your tenure. It still counts toward your legacy score.' : 'The exact effects are revealed when this lands.'}</p></div>
+    ${opt.lesson ? `<div class="lesson"><h4>The lesson</h4><p>${esc(opt.lesson)}</p></div>` : ''}
+    ${sc.caseStudy ? `<div class="case"><h4>Case study: ${esc(sc.caseStudy.company)}${sc.caseStudy.year ? ` (${esc(sc.caseStudy.year)})` : ''}</h4><p>${esc(sc.caseStudy.summary)}</p>${sc.src === 'ai' ? '<p class="tag">Written by AI from memory. Worth checking the details before you quote it.</p>' : ''}</div>` : ''}
+    ${others.length ? `<details class="paths"><summary>How the other paths would have played out</summary>
+      ${others.map(x => `<div class="path"><p><b>${esc(x.label)}</b></p><p><span class="muted">Right away:</span> ${esc(x.short.note)}</p><p><span class="muted">Medium term:</span> ${esc(x.medium.note)}</p><p><span class="muted">Long term:</span> ${esc(x.long.note)}</p></div>`).join('')}
+    </details>` : ''}
+    <div class="next"><button class="btn" data-act="advance">${lastTurn ? 'Finish and see your review' : 'Move on to ' + esc(periodLabel(S.turn + 1).toLowerCase())}</button></div>
+  </article>`;
+}
+
+function reviewHTML(t){
+  return String(t).split(/\n\s*\n|\n/).filter(x => x.trim()).map(p => {
+    const mm = p.match(/^\s*(Overall|Strengths|Blind spots|Practice next)\s*:\s*/i);
+    return mm ? `<p><b>${esc(mm[1])}:</b> ${esc(p.slice(mm[0].length))}</p>` : `<p>${esc(p)}</p>`;
+  }).join('');
+}
+
+function renderEnd(){
+  const s = S.start, m = S.m, lm = S.legacyM, role = ROLES[S.role];
+  const pct = (a,b) => { const c = (a/b - 1)*100; return `<span class="mdelta ${c >= 0 ? 'up' : 'down'}">${sgn(c)}% from start</span>`; };
+  const verdict = S.over === 'cash' ? `The money ran out in ${periodLabel(S.turn).toLowerCase()}`
+    : S.over === 'board' ? `The board replaced you in ${periodLabel(S.turn).toLowerCase()}`
+    : `Your ${TFS[S.tf].label} as ${role.short} is complete`;
+  const rows = [
+    ['Yearly revenue', x => money(x.rev)], ['Cash', x => money(x.cash)], ['Growth per year', x => x.growth.toFixed(0) + '%'],
+    ['Profit margin', x => x.margin.toFixed(0) + '%'], ['Headcount', x => num(x.staff)], ['Team morale', x => Math.round(x.morale)],
+    ['Customer satisfaction', x => Math.round(x.sat)], ['Tech debt', x => Math.round(x.debt)], ['Reputation', x => Math.round(x.rep)], ['Board confidence', x => Math.round(x.board)]
+  ];
+  const totalDec = S.log.length || 1;
+  const styleRows = Object.keys(STYLES).map(k => [k, S.styles[k] || 0]).filter(r => r[1] > 0).sort((a,b) => b[1]-a[1]);
+  app.innerHTML = `
+  <section style="max-width:56rem">
+    <span class="co">${esc(S.name)}, ${esc(SIZES[S.size].label.toLowerCase())} in ${esc(S.domain)}</span>
+    <h1 class="verdict">${esc(verdict)}</h1>
+    <p class="lede" style="font-size:1.08rem">Estimated company value, and what happened once the consequences you set in motion finished landing.</p>
+    <div class="chain">
+      <div><span class="lab">When you started</span><span class="big">${money(S.valueStart)}</span></div>
+      <div><span class="lab">When you left</span><span class="big">${money(S.valueExit)}</span>${pct(S.valueExit, S.valueStart)}</div>
+      <div><span class="lab">After your long-term bets landed</span><span class="big">${money(S.valueLegacy)}</span>${pct(S.valueLegacy, S.valueStart)}</div>
+    </div>
+    <p class="muted small">${S.pending.length} consequence${S.pending.length === 1 ? '' : 's'} landed after you left. <button class="link" style="padding:0;color:var(--accent)" data-act="term" data-term="Valuation">How value is estimated</button></p>
+
+    <h2 class="sec">Coach’s review</h2>
+    <div class="review" id="review" aria-live="polite">${S.review ? reviewHTML(S.review) : '<p class="muted">Your coach is reading through your decisions…</p>'}</div>
+
+    <h2 class="sec">Your leadership instincts</h2>
+    <p class="muted small" style="margin:0">How often each kind of choice showed up across ${S.log.length} decision${S.log.length === 1 ? '' : 's'}.</p>
+    <div class="styles">${styleRows.map(([k,c]) => `<div class="s"><span>${STYLES[k]}</span><span class="track2"><i style="width:${c/totalDec*100}%"></i></span><span>${c}</span></div>`).join('')}</div>
+
+    <h2 class="sec">The numbers</h2>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Measure</th><th>Start</th><th>When you left</th><th>After ripples</th></tr></thead>
+      <tbody>${rows.map(([n,f]) => `<tr><td>${n}</td><td>${f(s)}</td><td>${f(m)}</td><td>${f(lm)}</td></tr>`).join('')}</tbody>
+    </table></div>
+
+    ${S.pending.length ? `<h2 class="sec">What landed after you left</h2><ul class="loglist">${S.pending.map(p => `<li><span class="w">${p.h === 'medium' ? 'Medium-term' : 'Long-term'} effect of “${esc(p.from)}”</span><br>${esc(p.note)}${chips(p.e)}</li>`).join('')}</ul>` : ''}
+
+    <h2 class="sec">Your decisions</h2>
+    <ul class="loglist">${S.log.map(l => `<li><span class="w">${esc(l.when)}: ${esc(l.title)}</span><br><b>${esc(l.choice)}</b> <span class="muted small">${esc(STYLES[l.style])}${l.custom ? ', your own idea' : ''}</span></li>`).join('')}</ul>
+
+    <div class="row" style="margin:2rem 0 3rem">
+      <button class="btn" data-act="again">Play again with these settings</button>
+      <button class="btn ghost" data-act="tosetup">Change settings</button>
+    </div>
+  </section>`;
+}
+
+/* ---------- Drawer ---------- */
+function openDrawer(mode, focusTerm){
+  drawerMode = mode;
+  const panel = $('#panel');
+  if (mode === 'glossary'){
+    const all = { ...BASE_TERMS, ...(S ? S.terms : {}) };
+    const keys = Object.keys(all).sort((a,b) => a.localeCompare(b));
+    panel.innerHTML = `<div class="panel-head"><h2 id="panel-title">Glossary</h2><button class="link" data-act="close">Close</button></div>
+      <p class="muted small" style="margin:0">Every term from your briefings is collected here.</p>
+      <dl>${keys.map(k => `<dt id="t-${esc(k.replace(/\W+/g,'-'))}" class="${k === focusTerm ? 'hl' : ''}">${esc(k)}</dt><dd>${esc(all[k])}</dd>`).join('')}</dl>`;
+  } else {
+    panel.innerHTML = `<div class="panel-head"><h2 id="panel-title">Decisions so far</h2><button class="link" data-act="close">Close</button></div>
+      ${S && S.log.length ? `<ul class="loglist">${S.log.map(l => `<li><span class="w">${esc(l.when)}: ${esc(l.title)}</span><br><b>${esc(l.choice)}</b> <span class="muted small">${esc(STYLES[l.style])}</span></li>`).join('')}</ul>` : '<p class="muted">No decisions yet. Your choices will appear here.</p>'}
+      ${S && S.pending.length && S.phase !== 'end' ? `<h3 style="margin-top:1.5rem;font-size:1rem">Still on their way</h3><ul class="loglist">${S.pending.map(p => `<li><span class="w">${p.due >= S.total ? 'After you leave' : esc(periodLabel(p.due))}, ${p.h}-term</span><br>${esc(p.note)}</li>`).join('')}</ul>` : ''}`;
+  }
+  $('#drawer').hidden = false;
+  if (focusTerm){ const el = document.getElementById('t-' + focusTerm.replace(/\W+/g,'-')); if (el) el.scrollIntoView({block:'center'}); }
+  const btn = panel.querySelector('[data-act="close"]'); if (btn) btn.focus();
+}
+function closeDrawer(){ $('#drawer').hidden = true; drawerMode = null; }
+
+/* ---------- Events ---------- */
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]');
+  if (!el) return;
+  const a = el.dataset.act;
+  if (a === 'close-scrim'){ if (e.target === el) closeDrawer(); return; }
+  if (a === 'close') return closeDrawer();
+  if (a === 'glossary') return openDrawer('glossary');
+  if (a === 'log') return openDrawer('log');
+  if (a === 'term') return openDrawer('glossary', el.dataset.term);
+  if (a === 'set'){ draft[el.dataset.k] = el.dataset.v; return renderSetup(); }
+  if (a === 'start') return newGame(draft);
+  if (a === 'resume'){
+    const sv = loadSave(); if (!sv) return renderSetup();
+    S = sv; if (S.source === 'ai' && !sample) S.source = 'bank';
+    if (S.phase === 'evaluating') S.phase = 'scenario';
+    if (S.phase === 'loading' || S.phase === 'error' || !S.scenario) return loadScenario();
+    return render();
+  }
+  if (a === 'discard'){ clearSave(); return renderSetup(); }
+  if (!S) return;
+  if (a === 'choose'){ const opt = S.scenario.options[Number(el.dataset.i)]; if (opt) resolveDecision(opt, false); return; }
+  if (a === 'custom') return commitCustom();
+  if (a === 'ask') return askMentor();
+  if (a === 'advance') return advance();
+  if (a === 'retry') return loadScenario();
+  if (a === 'bankonce') return setScenario(pickBank());
+  if (a === 'tobank'){ if (busy){ busy.toBank = true; busy.ctl.abort(); } return; }
+  if (a === 'newgame'){
+    if (newGameArmed > Date.now()){
+      newGameArmed = 0; if (busy){ busy.ctl.abort(); busy = null; }
+      clearSave(); S = null; return renderSetup();
+    }
+    newGameArmed = Date.now() + 4000; renderNav();
+    setTimeout(renderNav, 4100); return;
+  }
+  if (a === 'again'){ const d = { role:S.role, domain:S.domain, customDomain:'', size:S.size, tf:S.tf, name:S.name, source:S.source }; clearSave(); return newGame(d); }
+  if (a === 'tosetup'){ draft.role = S.role; draft.size = S.size; draft.tf = S.tf; clearSave(); S = null; return renderSetup(); }
+});
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (t.id === 'co-name') draft.name = t.value;
+  else if (t.id === 'dom-other') draft.customDomain = t.value;
+  else if (t.id === 'cd' && S) S.customDraft = t.value;
+  else if (t.id === 'mq' && S) S.mentorDraft = t.value;
+  else if (t.classList && t.classList.contains('codein')) setCode(t.value);
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !$('#drawer').hidden) closeDrawer();
+  if (e.key === 'Enter' && e.target.id === 'mq'){ e.preventDefault(); askMentor(); }
+});
+document.addEventListener('toggle', e => {
+  if (S && e.target.matches && e.target.matches('[data-mentor]')) S.mentorOpen = e.target.open;
+}, true);
+setInterval(() => {
+  if (!busy) return;
+  const el = $('#busy-line'); if (!el) return;
+  const secs = Math.round((Date.now() - busy.t0) / 1000);
+  el.textContent = busy.chars ? `Writing… ${secs}s` : `Thinking… ${secs}s. This usually takes 10 to 40 seconds.`;
+}, 1000);
+
+renderSetup();
+</script>
+</body>
+</html>
